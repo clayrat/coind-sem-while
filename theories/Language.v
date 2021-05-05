@@ -6,7 +6,7 @@ Unset Strict Implicit.
 Import Prenex Implicits.
 
 Definition expr := state -> val.
-Parameter is_true: val -> bool. 
+Parameter is_true: val -> bool.
 
 Inductive stmt : Set :=
 | Sskip
