@@ -60,14 +60,10 @@ move => [f1 hf1] [f2 hf2] [f3 hf3] tr0 /= h1. by apply: append_assoc_R.
 Qed.
 
 Definition Tnil_eq_fin tr st (h : Tnil st = tr) : fin tr st.
-Proof.
-by rewrite -h; apply fin_nil.
-Defined.
+Proof. by rewrite -h; apply fin_nil. Defined.
 
 Definition Tcons_eq_fin tr tr' st st' (h : Tcons st tr' = tr) (h': fin tr' st') : fin tr st'.
-Proof.
-by rewrite -h; apply fin_delay.
-Defined.
+Proof. by rewrite -h; apply fin_delay. Defined.
 
 CoFixpoint f (q : trace -> Prop) tr
   (g: forall st, fin tr st -> {tr1 : trace | q tr1 /\ hd tr1 = st}) : trace :=
@@ -82,9 +78,9 @@ Lemma singleton_last_fin: forall p q tr0,
  forall st, fin tr0 st -> { tr1 | q tr1 /\ hd tr1 = st}.
 Proof.
 move => p q tr0 h0 h1 st0 h2.
-have h3: singleton (last p) (Tnil st0).
-  by exists st0; split; last apply bisim_reflexive; exists tr0.
-have := h0 _ h3 => {h0 h3} h.
+have h3: singleton (last p) (Tnil st0)
+  by exists st0; split; [exists tr0|apply: bisim_reflexive].
+have h := h0 _ h3 => {h0 h3}.
 move/constructive_indefinite_description: h => [tr1 h0]. exists tr1. by inv h0.
 Qed.
 

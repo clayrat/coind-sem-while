@@ -45,8 +45,7 @@ CoInductive redm: stmt -> state -> trace -> Prop :=
 Lemma stop_step_exclusive: forall s st s' st',
 stop s -> step s st s' st' -> False.
 Proof.
-move => s; induction s;
-move => st s' st' h1 h2; do [simpl] in h1 h2.
+move => s; induction s => st s' st' /= h1 h2.
 - by inversion h2.
 - by inversion h1.
 - inv h1. inv h2.
@@ -59,7 +58,7 @@ Qed.
 Lemma step_deterministic: forall s st s1 st1 s2 st2,
 step s st s1 st1 -> step s st s2 st2 -> s1 = s2 /\ st1 = st2.
 Proof.
-move => s; induction s; move => st s3 st1 s4 st2 h1 h2; inv h1; inv h2=>//.
+move => s; induction s=> st s3 st1 s4 st2 h1 h2; inv h1; inv h2=>//.
 - by move: (IHs1 _ _ _ _ _ H4 H5); case=>->->.
 - by move: (stop_step_exclusive H1 H4).
 - by move: (stop_step_exclusive H1 H6).
@@ -75,15 +74,14 @@ Lemma redm_deterministic:
 forall st s tr1 tr2, redm st s tr1 -> redm st s tr2 ->
 bisim tr1 tr2.
 Proof.
-cofix COINDHYP.
-move => st s tr1 tr2  h1 h2. inv h1.
+cofix COINDHYP=> st s tr1 tr2 h1 h2. inv h1.
 - inv h2.
   - by apply: bisim_nil.
   - by move: (stop_step_exclusive H H0).
 - inv h2.
   - by move: (stop_step_exclusive H1 H).
-  - have h3 := step_deterministic H H1. inv h3. apply: bisim_cons.
-    by apply: (COINDHYP _ _ _ _ H0 H2).
+  - have h3 := step_deterministic H H1. inv h3.
+    by apply/bisim_cons/(COINDHYP _ _ _ _ H0).
 Qed.
 
 (* setoid *)
@@ -91,22 +89,20 @@ Lemma redm_insensitive:
 forall s st tr1 tr2, redm s st tr1 -> bisim tr1 tr2 ->
 redm s st tr2.
 Proof.
-cofix COINDHYP. move => st s tr1 tr2 h1 h2. inv h1.
-- inv h2. apply: (redm_stop _ H).
-- inv h2. apply: (redm_step H).  apply: (COINDHYP _ _ _  _ H0 H4).
+cofix COINDHYP=> st s tr1 tr2 h1 h2. inv h1.
+- inv h2. by apply: (redm_stop _ H).
+- inv h2. by apply/redm_step/(COINDHYP _ _ _  _ H0).
 Qed.
 
 Lemma red_exec:
 forall s st tr, exec s st tr ->
 (stop s /\ tr = Tnil st) \/ (exists s' st' tr', (step s st s' st' /\ bisim tr (Tcons st tr')) /\ exec s' st' tr').
 Proof.
-move => s; induction s; move => st tr1 h1; inv h1.
+move => s; induction s=> st tr1 h1; inv h1.
 - left. split=>//.
   by apply: stop_skip.
 - right. exists Sskip, (update i (e st) st), (Tnil (update i (e st) st)). split.
-  * split.
-    * by apply: step_assign.
-    * by apply: bisim_reflexive.
+  * by split; [apply: step_assign|apply: bisim_reflexive].
   * by apply: exec_skip.
 - have [h2 | h2]:= IHs1 _ _ H1 => {IHs1}.
   - move: h2 => [h3 h4]. subst. inv H4.
@@ -165,11 +161,11 @@ Qed.
 Lemma exec_correct_redm: forall s st tr,
 exec s st tr -> redm s st tr.
 Proof.
-cofix COINDHYP. move => s st tr h1. have [h2 | h2] := red_exec h1.
+cofix COINDHYP=> s st tr h1. have [h2 | h2] := red_exec h1.
 - move: h2 => [h3 ->]. by apply: (redm_stop _ h3).
 - move: h2 => [s1][st1][tr1][[h3 h4] h5]. inv h4.
   apply: (redm_step h3). apply: COINDHYP.
-  apply: (exec_insensitive h5 (bisim_symmetric H1)).
+  by apply: (exec_insensitive h5 (bisim_symmetric H1)).
 Qed.
 
 CoInductive midpoint (s1 s2: stmt) (st: state) (tr: trace)
@@ -327,9 +323,9 @@ Inductive result: trace -> state -> Prop :=
 Lemma redm_correct_norm:
 forall tr st, result tr st -> forall s st', redm s st' tr -> norm s st' st.
 Proof.
-induction 1.
-- move => s st1 h1. inv h1. by apply: (norm_nil _ H2).
-- move => s st1 h1. inv h1. apply: (norm_cons H4). by apply: (IHresult _ _ H5).
+induction 1=> s st1 h1; inv h1.
+- by apply: (norm_nil _ H2).
+- by apply/norm_cons/(IHresult _ _ H5).
 Qed.
 
 Lemma norm_correct_redm: forall s st st',

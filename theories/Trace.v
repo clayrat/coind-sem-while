@@ -4,7 +4,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Ltac inv h := inversion h; subst => {h}.
+Ltac inv h := inversion h; subst=>{h}.
 
 Definition id := nat.
 Definition val := nat.

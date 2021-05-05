@@ -107,7 +107,7 @@ CoInductive execseq2: stmt -> trace -> trace -> Prop :=
   execseq2 (Swhile a s) tr tr''.
 
 Inductive exec2: stmt -> state -> trace -> Prop :=
-| exec2_intro: forall s st tr,  execseq2 s (Tnil st) tr -> exec2 s st tr.
+| exec2_intro: forall s st tr, execseq2 s (Tnil st) tr -> exec2 s st tr.
 
 Lemma lemma2: forall st tr, exec2 (Swhile tt Sskip) st tr.
 Proof.
@@ -180,8 +180,8 @@ cofix COINDHYP=> s st tr h1. inv h1.
 - by apply: exec_skip.
 - by apply: exec_assign.
 - apply: (exec_seq (COINDHYP _ _ _ H0)).
-  move => {H0}. move: tr' st' tr'' tr H H1. cofix COINDHYP0.
-  move => st0 st1 tr0 tr1 h1 h2. inv h1.
+  move => {H0}. move: tr' st' tr'' tr H H1.
+  cofix COINDHYP0=> st0 st1 tr0 tr1 h1 h2. inv h1.
   - by apply/execseq_nil/COINDHYP.
   - by apply/execseq_nil/COINDHYP.
   - by apply/execseq_cons/(COINDHYP0 _ _ _ _ H h2).

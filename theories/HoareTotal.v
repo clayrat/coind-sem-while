@@ -57,20 +57,22 @@ Qed.
 
 Lemma tsemax2_false: forall s u, tsemax2 ffS s u.
 Proof.
-move => s. induction s.
-- move => u. have hs := tsemax2_skip ffS.
+move => s. induction s=>u.
+- have hs := tsemax2_skip ffS.
   by apply: (tsemax2_conseq_R _ hs).
-- move => u. have hs := tsemax2_assign ffS.
+- have hs := tsemax2_assign ffS.
   by apply: (tsemax2_conseq_R _ (hs _ _)) => {hs} st0 [st1 [h0 _]].
-- move => u. have hs1 := IHs1 ffS => {IHs1}. have hs2 := IHs2 u => {IHs2}.
+- have hs1 := IHs1 ffS => {IHs1}.
+  have hs2 := IHs2 u => {IHs2}.
   by apply: (tsemax2_seq hs1 hs2).
-- move => u. have hs1 := IHs1 u => {IHs1}. have hs2 := IHs2 u => {IHs2}.
+- have hs1 := IHs1 u => {IHs1}.
+  have hs2 := IHs2 u => {IHs2}.
   have htrue : (ffS andS eval_true e) ->> ffS
     by move => st0 [h0 h1].
   have hfalse : (ffS andS eval_false e) ->> ffS
     by move => st0 [h0 h1].
   by exact: (tsemax2_ifthenelse (tsemax2_conseq_L htrue hs1) (tsemax2_conseq_L hfalse hs2)).
-- move => u. set J := fun m: nat => ffS.
+- set J := fun m: nat => ffS.
   have hs: forall n, tsemax2 (eval_true e andS J n) s (exS (fun k => (fun st => k < n)
   andS (J k))).
   * move => n.
@@ -132,9 +134,7 @@ Qed.
 
 Definition invert_fin_delay (tr : trace) (st st0 : state)
  (h : fin (Tcons st tr) st0) : fin tr st0.
-Proof.
-by depelim h.
-Defined.
+Proof. by depelim h. Defined.
 
 Fixpoint cut (tr0 : trace) (st0 : state) (h : fin tr0 st0) (tr1 : trace) { struct h }: trace :=
 match tr0 as tr0' return (fin tr0' st0 -> trace) with
@@ -194,17 +194,17 @@ Proof.
 move => [p hp] [q hq] [r hr] /= h0 tr0 [tr1 [[st0 [h1 h3]] h2]].
 inv h3. inv h2. destruct h1 as [tr1 [h1 h2]].
 have h3: (p *+* q) (tr1 +++ tr0).
-* exists tr1; split => //. clear h1. move: tr0 tr1 H1 h2. cofix hcoind.
-  move => tr0. case.
-  - move => st0 h2 h1. inv h1. rewrite trace_append_nil. apply follows_nil => //.
-  - move => st0 tr1 h2 h3. inv h3. rewrite [Tcons st0 tr1 +++ _]trace_destr.
-    simpl. apply follows_delay. have := hcoind _ _ h2 H2. done.
+* exists tr1; split => // {h1}. move: tr0 tr1 H1 h2.
+  cofix hcoind=> tr0. case=>st0.
+  - move=>h2 h1. inv h1. rewrite trace_append_nil. by apply follows_nil.
+  - move=>tr1 h2 h3. inv h3. rewrite [Tcons st0 tr1 +++ _]trace_destr /=.
+    by apply/follows_delay/(hcoind _ _ h2).
 move: (h0 _ h3) => {h0 H1 h1 h3}[tr2 h0].
 move h1 : (hd tr0) => st0. rewrite h1 in h2. move: tr1 st0 h2 tr0 h1 tr2 h0.
-induction 1.
-- move => tr0 h0 tr1 h1. rewrite trace_append_nil in h1.
+induction 1=> tr0 h0 tr1 h1.
+- rewrite trace_append_nil in h1.
   by exists tr1.
-- move => tr0 h0 tr1 h1. rewrite trace_append_cons in h1. inv h1.
+- rewrite trace_append_cons in h1. inv h1.
   by apply: (IHh2 _ _ _ H2).
 Qed.
 
@@ -228,22 +228,30 @@ induction 1.
   apply: (tsemax2_conseq_R _ h0) => st [{}h0 [h1 h2]].
   split.
   * exists (Tnil st). split.
-    + exists (Tnil st). split. exists st. split => //. apply bisim_reflexive. apply follows_nil => //.
-  exists st. split => //. apply bisim_reflexive. apply fin_nil.
+    + exists (Tnil st). split.
+      - exists st. by split => //; apply: bisim_reflexive.
+      apply follows_nil => //.
+      exists st. by split => //; apply: bisim_reflexive.
+    apply fin_nil.
   move => tr [h3 h4]. apply h2. split => //. destruct r as [r hr]. simpl.
-  simpl in h4. exists (Tnil st). split. exists st. split => //. apply bisim_reflexive.
-  apply follows_nil => //.
+  simpl in h4. exists (Tnil st). split.
+  * exists st. by split => //; apply: bisim_reflexive.
+  by apply: follows_nil.
 - move => m w r hafter.
   have h0 := tsemax2_assign (u andS w andS Len (Updt u x a *** r) m) x a.
   apply: (tsemax2_conseq_R _ h0) => st [st1 [[{}h0 [h2 h3]] h1]].
-  split. exists (Tcons st1 (Tnil st)). split.
-  exists (Tnil st1). split. exists st1. split => //. apply bisim_reflexive.
-  apply follows_nil => //. exists st1. split => //. rewrite h1. apply bisim_reflexive.
-  apply fin_delay. apply fin_nil. move => tr0 [h4 h5].
+  split.
+  * exists (Tcons st1 (Tnil st)). split.
+    + exists (Tnil st1). split.
+      - exists st1. by split => //; apply: bisim_reflexive.
+      apply follows_nil => //. exists st1. split => //. rewrite h1. by apply: bisim_reflexive.
+    by apply/fin_delay/fin_nil.
+  move => tr0 [h4 h5].
   have {h1 h2 h3 h4 h5}h0: len m (Tcons st1 tr0).
   * apply h3 => {h3}. split => //. destruct r as [r hr]. simpl. exists (Tcons st1 (Tnil st)).
-    split. exists st1. split => //. rewrite h1. apply bisim_reflexive.
-    apply follows_delay. apply follows_nil => //.
+    split.
+    + exists st1. split => //. rewrite h1. by apply: bisim_reflexive.
+    by apply/follows_delay/follows_nil.
   inv h0. by apply: len_S.
 - move => m w r hafter.
   have hr: after ([|w|] *** p1 *** [|v|]) (p2 *** r).
@@ -264,97 +272,108 @@ induction 1.
     move => h2. move: (hafter _ h2) => {hafter}[tr2 h3].
     exists tr2. apply: (follows_follows h1 h3).
   have hs1 := IHsemax1 m w (p2 *** r) hr => {IHsemax1 hr}.
-  have: (Len ((p1 *** p2) *** r) m) ->> Len ((p1 *** [|v|]) *** p2 *** r) m.
+  have h0: (Len ((p1 *** p2) *** r) m) ->> Len ((p1 *** [|v|]) *** p2 *** r) m.
   * apply Len_monotone. apply: (impT_conseq_L (@Append_monotone_L _ p1 _ _)).
     apply Append_Singleton. by apply Append_assoc_R.
-  move => h0. have : tsemax2 (u andS w andS Len ((p1 *** p2) *** r) m)
-  s1 (Last (([|w|]) *** p1 *** ([|v|])) andS Len (p2 *** r) m).
-  have := tsemax2_conseq_L _ hs1 => {hs1}. apply. move => st0 [h1 [h2 h3]].
-  split => //. split => //. have := h0 _ h3. done. clear h0 hs1. move => hs1.
+  have {h0}hs1 : tsemax2 (u andS w andS Len ((p1 *** p2) *** r) m)
+               s1 (Last (([|w|]) *** p1 *** ([|v|])) andS Len (p2 *** r) m).
+  * apply: (tsemax2_conseq_L _ hs1) => {hs1} st0 [h1 [h2 h3]].
+    split => //. split => //. by exact: (h0 _ h3).
   have hr: after ([|Last ([|w|] *** p1 *** [|v|])|] *** p2) r.
   * destruct p1 as [p1 hp1]. destruct p2 as [p2 hp2]. destruct r as [r hr].
-    simpl. simpl in hafter. clear hs1. move => tr0 h0. destruct h0 as [tr1 [h0 h1]].
+    simpl. simpl in hafter. move => {hs1} tr0 h0. destruct h0 as [tr1 [h0 h1]].
     destruct h0 as [st0 [h0 h2]]. inv h2. inv h1. destruct h0 as [tr1 [h0 h1]].
-    have : (singleton w *+* p1 *+* p2) (tr1 +++ tr0).
-    * apply append_assoc_L. have := append_assoc_R h0 => {h0}. move => h0.
-      have := append_fin _ H3. apply => //. have := append_singleton _ h0. apply => //.
-      apply append_setoid => //. clear h0 H3. move => h0.
-      have := hafter _ h0 => {hafter h0}. move => [tr2 h0].
-      move h2: (hd tr0) => st0. rewrite h2 in h1.
-      exists (cut h1 tr2). move: tr1 st0 h1 tr0 h2 tr2 h0.
-      refine (fix IH tr st h {struct h} := _).
-      case: tr st h.
-      - depelim h; move => tr0 h0 tr2 h1. rewrite trace_append_nil in h1. simpl. done.
-      - depelim h; move => tr0 h2 tr2 h1. simpl. rewrite trace_append_cons in h1. inv h1.
-        have := IH  _ _ _ _ _ _ H4. apply => //.
+    have {H3} h0 : (singleton w *+* p1 *+* p2) (tr1 +++ tr0).
+    * apply append_assoc_L.
+      have {}h0 := append_assoc_R h0.
+      apply: (append_fin _ H3) => //.
+      apply: (append_singleton _ h0) => //.
+      by apply append_setoid.
+    have {hafter} [tr2 {}h0] := hafter _ h0.
+    move h2: (hd tr0) => st0. rewrite h2 in h1.
+    exists (cut h1 tr2). move: tr1 st0 h1 tr0 h2 tr2 h0.
+    refine (fix IH tr st h {struct h} := _).
+    case: tr st h.
+    - depelim h; move => tr0 h0 tr2 h1. rewrite trace_append_nil in h1. simpl. done.
+    - depelim h; move => tr0 h2 tr2 h1. simpl. rewrite trace_append_cons in h1. inv h1.
+      by apply: (IH  _ _ _ _ _ _ H4).
   have hs2 := IHsemax2 m (Last (([|w|]) *** p1 *** ([|v|]))) r hr => {IHsemax2 hr}.
-  have: (Last (([|w|]) *** p1 *** ([|v|]))) ->> v.
-  * move => st0 h0. have := Last_monotone (@Append_assoc_R _ _ _) h0.
-    clear h0. move => h0. have := Last_chop_sglt h0. done.
-  move => h0.
-  have: tsemax2 (Last (([|w|]) *** p1 *** ([|v|]))andS Len (p2 *** r) m) s2
+  have h0: (Last (([|w|]) *** p1 *** ([|v|]))) ->> v.
+  * move => st0 h0.
+    move: (Last_monotone (@Append_assoc_R _ _ _) h0) => {}h0.
+    by exact: (Last_chop_sglt h0).
+  have {}hs2: tsemax2 (Last (([|w|]) *** p1 *** ([|v|]))andS Len (p2 *** r) m) s2
   (Last (([|Last (([|w|]) *** p1 *** ([|v|]))|]) *** p2) andS Len r m).
-  * have := tsemax2_conseq_L _ hs2 => {hs2}. apply. move => st0 [h1 h2].
-    split => //. have := h0 _ h1. done.
-  move => {}hs2.
+  * apply: (tsemax2_conseq_L _ hs2) => {hs2} st0 [h1 h2].
+    split => //.
+    by exact: (h0 _ h1).
   move: (tsemax2_seq hs1 hs2) => {h0 hs1 hs2} hs.
   apply: (tsemax2_conseq_R _ hs) => {hs} st0 [h0 h1].
   split => // {h1}. move: (Last_Last h0) => {}h0.
   apply: (Last_monotone _ h0) => {h0}.
-  apply: (impT_conseq_R (@Append_assoc_L _ _ _)). apply Append_monotone_L.
-  apply Append_monotone_R. by apply Append_Singleton.
+  apply: (impT_conseq_R (@Append_assoc_L _ _ _)).
+  by apply/Append_monotone_L/Append_monotone_R/Append_Singleton.
 - move => m w r hafter.
   * have haftertt: after ([|w andS u|] *** p) r.
     * destruct p as [p hp]. destruct r as [r hr]. simpl. clear IHsemax1 IHsemax2.
       simpl in hafter. move => tr0 [tr1 [h0 h1]]. destruct h0 as [st0 [h0 h2]].
       inv h2. inv h1. destruct h0 as [h0 h1].
-      have: (singleton w *+* dup u *+* p) (Tcons (hd tr0) tr0).
-      * exists (Tnil (hd tr0)). split. exists (hd tr0). split => //. apply bisim_reflexive.
+      have h2: (singleton w *+* dup u *+* p) (Tcons (hd tr0) tr0).
+      * exists (Tnil (hd tr0)). split.
+        + exists (hd tr0). by split => //; apply: bisim_reflexive.
         apply follows_nil => //. exists (Tcons (hd tr0) (Tnil (hd tr0))).
-        split. exists (hd tr0). split => //. apply bisim_reflexive.
-        apply follows_delay. by apply follows_nil.
-      move => h2. have := hafter _ h2. move => [tr1 h3]. clear h0 h1 h2. inv h3.
-      exists tr'. done.
+        split.
+        + exists (hd tr0). by split => //; apply: bisim_reflexive.
+        by apply/follows_delay/follows_nil.
+      move: (hafter _ h2) => {h0 h1 h2} [tr1 h3]. inv h3.
+      by exists tr'.
     apply tsemax2_ifthenelse.
-    have := IHsemax1 m _ _ haftertt => {IHsemax1 haftertt}. move => hsemax.
-    have := tsemax2_conseq _ _ hsemax. apply => {hsemax}.
+    - move: (IHsemax1 m _ _ haftertt) => {IHsemax1 haftertt} hsemax.
+      apply: (tsemax2_conseq _ _ hsemax) => {hsemax}.
+      * move => st0 [[h0 [h1 h3]] h2]. split => //. split => //.
+        move: (Len_monotone (@Append_assoc_R _ _ _) h3) => {}h3.
+        destruct p as [p hp]. destruct r as [r hr]. move => tr0 [{}h1 /= {}h2].
+        have f4 : ((dup u) *+* (p *+* r)) (Tcons (hd tr0) tr0).
+        + exists (Tcons (hd tr0) (Tnil (hd tr0))). split.
+          - exists (hd tr0). by split; [rewrite h1|apply/bisim_reflexive].
+          by apply/follows_delay/follows_nil.
+        have h5: len m (Tcons (hd tr0) tr0) by apply: h3.
+        inv h5. by exact: len_S H3.
+       * move => st0 [h0 h1]. split => // {h1}. destruct p as [p hp].
+         destruct h0 as [tr0 [h0 h1]]. exists (Tcons (hd tr0) tr0).
+         destruct h0 as [tr1 [h0 h2]]. destruct h0 as [st1 [h0 h3]].
+         inv h3. inv h2. destruct h0 as [h0 h2]. split.
+         + exists (Tnil (hd tr0)). split.
+           - exists (hd tr0). by split => //; apply: bisim_reflexive.
+           apply follows_nil => //.
+           exists (Tcons (hd tr0) (Tnil (hd tr0))). split.
+           - exists (hd tr0). by split => //; apply: bisim_reflexive.
+           by apply/follows_delay/follows_nil.
+      by apply: fin_delay.
+    move: (IHsemax2 m _ _ haftertt) => {IHsemax2 haftertt} hsemax.
+    apply: (tsemax2_conseq _ _ hsemax) => {hsemax}.
     * move => st0 [[h0 [h1 h3]] h2]. split => //. split => //.
-      have := Len_monotone (@Append_assoc_R _ _ _) h3. clear h3. move => h3.
-      destruct p as [p hp]. destruct r as [r hr]. clear h1 h2. move => tr0 [h1 h2].
-      simpl in h2. have : ((dup u) *+* (p *+* r)) (Tcons (hd tr0) tr0).
-      exists (Tcons (hd tr0) (Tnil (hd tr0))). split. exists (hd tr0). split.
-      rewrite h1. done. apply bisim_reflexive. apply follows_delay.
-      by apply follows_nil. move => h4.
-      have: len m (Tcons (hd tr0) tr0). apply h3. simpl. clear h3. by split.
-      move => h5. inv h5. have := len_S H3. done.
+      move: (Len_monotone (@Append_assoc_R _ _ _) h3) => {}h3.
+      destruct p as [p hp]. destruct r as [r hr]. move => tr0 [{}h1 /= {}h2].
+      have h4 : ((dup u) *+* (p *+* r)) (Tcons (hd tr0) tr0).
+      + exists (Tcons (hd tr0) (Tnil (hd tr0))). split.
+        - exists (hd tr0); by split; [rewrite h1|apply: bisim_reflexive].
+        by apply/follows_delay/follows_nil.
+      have h5: len m (Tcons (hd tr0) tr0) by apply: h3.
+      inv h5. by exact: len_S H3.
      * move => st0 [h0 h1]. split => //. clear h1. destruct p as [p hp].
        destruct h0 as [tr0 [h0 h1]]. exists (Tcons (hd tr0) tr0).
        destruct h0 as [tr1 [h0 h2]]. destruct h0 as [st1 [h0 h3]].
-       inv h3. inv h2. destruct h0 as [h0 h2]. split. exists (Tnil (hd tr0)).
-       split. exists (hd tr0). split => //. apply bisim_reflexive. apply follows_nil => //.
-       exists (Tcons (hd tr0) (Tnil (hd tr0))). split. exists (hd tr0). split => //.
-       apply bisim_reflexive. apply follows_delay. by apply follows_nil.
-       by apply fin_delay.
-    have := IHsemax2 m _ _ haftertt => {IHsemax2 haftertt}. move => hsemax.
-    have := tsemax2_conseq _ _ hsemax. apply => {hsemax}.
-    * move => st0 [[h0 [h1 h3]] h2]. split => //. split => //.
-      have := Len_monotone (@Append_assoc_R _ _ _) h3. clear h3. move => h3.
-      destruct p as [p hp]. destruct r as [r hr]. clear h1 h2. move => tr0 [h1 h2].
-      simpl in h2. have : ((dup u) *+* (p *+* r)) (Tcons (hd tr0) tr0).
-      exists (Tcons (hd tr0) (Tnil (hd tr0))). split. exists (hd tr0). split.
-      rewrite h1. done. apply bisim_reflexive. apply follows_delay.
-      by apply follows_nil. move => h4.
-      have: len m (Tcons (hd tr0) tr0). apply h3. simpl. clear h3. by split.
-      move => h5. inv h5. have := len_S H3. done.
-     * move => st0 [h0 h1]. split => //. clear h1. destruct p as [p hp].
-       destruct h0 as [tr0 [h0 h1]]. exists (Tcons (hd tr0) tr0).
-       destruct h0 as [tr1 [h0 h2]]. destruct h0 as [st1 [h0 h3]].
-       inv h3. inv h2. destruct h0 as [h0 h2]. split. exists (Tnil (hd tr0)).
-       split. exists (hd tr0). split => //. apply bisim_reflexive. apply follows_nil => //.
-       exists (Tcons (hd tr0) (Tnil (hd tr0))). split. exists (hd tr0). split => //.
-       apply bisim_reflexive. apply follows_delay. by apply follows_nil.
-       by apply fin_delay.
-- move => m w r hafter. set J0 := Last (<< u0 andS w >> *** (Iter (p *** << u >>))).
+       inv h3. inv h2. destruct h0 as [h0 h2]. split.
+       + exists (Tnil (hd tr0)). split.
+         - exists (hd tr0). by split => //; apply: bisim_reflexive.
+         apply follows_nil => //.
+         exists (Tcons (hd tr0) (Tnil (hd tr0))). split.
+         - exists (hd tr0). by split => //; apply: bisim_reflexive.
+         by apply/follows_delay/follows_nil.
+       by apply: fin_delay.
+- move => m w r hafter.
+  set J0 := Last (<< u0 andS w >> *** (Iter (p *** << u >>))).
   set J1 := (Iter (p *** << u >>) *** [|eval_false a|] *** r).
   set Q := <<u>> *** (Iter (p *** <<u>>)) *** [|eval_false a|] *** r.
 
@@ -362,147 +381,152 @@ induction 1.
   (exS (fun k => (fun st => k < n) andS J0 andS Len J1 k)).
 
   have hn0: (eval_true a andS J0 andS Len J1 0) ->> ffS.
-  * move => st0. rewrite /J0. rewrite /J1. move => [h1 [h2 h3]].
-  have hfalse: forall tr0, satisfy (Iter (p *** <<u>>) *** [|eval_false a|] *** r) tr0
-  -> hd tr0 = st0 -> False.
-  * destruct p as [p hp]. destruct r as [r hr]. simpl. move => tr0 h4 h5.
-     have : len 0 tr0. apply h3. clear h3. split => //. clear h3.
-     move => h3. destruct h4 as [tr1 [h4 h6]]. inv h4.
-     - inv h6. destruct H3 as [tr1 [h0 h4]]. destruct h0 as [st1 [h0 h5]].
-       inv h5. inv h4. rewrite /eval_true in h1. rewrite /eval_false in h0.
-       rewrite h1 in h0. by inv h0.
-     - destruct H1 as [tr2 [h0 h4]]. destruct tr2.
-       - clear h0. inv h4. destruct H4 as [st0 [_ h0]]. inv h0. inv H4.
-         inv H2. inv h6. inv h3.
-       - inv h4. inv H2. inv h6. inv h3.
+  * move => st0. rewrite /J0 /J1. move => [h1 [h2 h3]].
+    have hfalse: forall tr0, satisfy (Iter (p *** <<u>>) *** [|eval_false a|] *** r) tr0
+    -> hd tr0 = st0 -> False.
+    * destruct p as [p hp]. destruct r as [r hr]. simpl. move => tr0 h4 h5.
+       have {}h3 : len 0 tr0 by apply h3.
+       destruct h4 as [tr1 [h4 h6]]. inv h4.
+       - inv h6. destruct H3 as [tr1 [h0 h4]]. destruct h0 as [st1 [h0 h5]].
+         inv h5. inv h4. rewrite /eval_true in h1. rewrite /eval_false in h0.
+         rewrite h1 in h0. by inv h0.
+       - destruct H1 as [tr2 [h0 h4]]. destruct tr2.
+         - clear h0. inv h4. destruct H4 as [st0 [_ h0]]. inv h0. inv H4.
+           inv H2. inv h6. by inv h3.
+         - inv h4. inv H2. inv h6. by inv h3.
 
     have hsemax := semax_while (@assertS_imp_refl _) H0 => {H0}.
     have h0 := semax_total hsemax => {hsemax}.
-    have hu : u st0. have := tsemax2_complete_aux3 H h2. done.
-    have := h0 _ hu => {h0}. move => [tr0 [h0 h4]].
+    have hu : u st0 by exact: (tsemax2_complete_aux3 H h2).
+    move: (h0 _ hu) => [tr0 [{}h0 h4]].
 
-    have: after ([|w|] *** <<u0>> *** Iter (p *** <<u>>) *** Iter (p *** <<u>>)
-    *** [|eval_false a|]) r.
-   * have := after_monotone_L _ hafter => {hafter}. apply.
-     apply Append_monotone_R. apply Append_monotone_R. have := assertT_imp_trans (@Append_assoc_R _ _ _).
-     apply. apply Append_monotone_L. apply Iter_Iter.
-    clear hafter. move => hafter.
+    have {}hafter: after ([|w|] *** <<u0>> *** Iter (p *** <<u>>) *** Iter (p *** <<u>>)
+                   *** [|eval_false a|]) r.
+     * apply: (after_monotone_L _ hafter) => {hafter}.
+       apply/Append_monotone_R/Append_monotone_R.
+       apply: (assertT_imp_trans (@Append_assoc_R _ _ _)).
+       by apply/Append_monotone_L/Iter_Iter.
 
     set P := ([|w|] *** << u0 >> *** Iter (p *** <<u>>) *** Iter (p *** <<u>>) *** [|eval_false a|]).
-    destruct p as [p hp].
-    destruct r as [r hr]. simpl in h4. simpl in h2.
-    destruct h2 as [tr1 [h2 h5]]. destruct h2 as [tr2 [h2 h6]].
-    destruct h2 as [st1 [h2 h7]]. inv h7. inv H2. destruct h2 as [h2 h0].
-    inv h6. inv h5. inv H3. destruct h4 as [tr1 [h4 h5]]. destruct h4 as [st0 [h4 h6]].
+    destruct p as [p hp]. destruct r as [r hr]. simpl in h4. simpl in h2.
+    destruct h2 as [tr1 [[tr2 [[st1 [h2 h7]] h6]] h5]].
+    inv h7. inv H2. destruct h2 as [h2 h0].
+    inv h6. inv h5. inv H3. destruct h4 as [tr1 [[st0 [h4 h6]] h5]].
     inv h6. inv H3. inv h5. simpl in H4. simpl in h0. simpl in h2.
     simpl. simpl in h1. inv H5.
-    have : append (iter (append p (dup u)))
-    (append (iter (append p (dup u))) (singleton (eval_false a))) (tr' +++ tr'0).
-    * exists tr'. split => //. clear hu hfalse H2 h2 h0 h4 h1 h3. move: tr' tr'0 H4 H3.
-      cofix hcoind. move => tr0 tr1 h0. inv h0. move => h0. apply follows_nil => //.
-      by rewrite trace_append_nil. move => h0. rewrite [Tcons st tr +++ tr1]trace_destr; simpl.
-      apply follows_delay. have := hcoind _ _ H0 h0. done.
-    move => h5.
-    have : satisfy P (Tcons (hd tr') (tr' +++ tr'0)).
-    * rewrite /P. simpl. exists (Tnil (hd tr')). split. exists (hd tr').
-      split => //. apply bisim_reflexive. apply follows_nil => //.
-
+    have h5 : append (iter (append p (dup u)))
+             (append (iter (append p (dup u))) (singleton (eval_false a))) (tr' +++ tr'0).
+    * exists tr'. split => // {hu hfalse H2 h2 h0 h4 h1 h3}. move: tr' tr'0 H4 H3.
+      cofix hcoind=> tr0 tr1 h0. inv h0=>h0.
+      - apply follows_nil => //. by rewrite trace_append_nil.
+      rewrite [Tcons st tr +++ tr1]trace_destr/=.
+      apply follows_delay. by exact: (hcoind _ _ H0 h0).
+    have hP : satisfy P (Tcons (hd tr') (tr' +++ tr'0)).
+    * rewrite /P /=. exists (Tnil (hd tr')). split.
+      - exists (hd tr'). by split => //; apply: bisim_reflexive.
+      apply follows_nil => //.
       exists (Tcons (hd tr') (Tnil (hd tr'))). split.
-      exists (hd tr'). split => //. apply bisim_reflexive. apply follows_delay.
-      apply follows_nil => //. have := hd_append H4 (refl_equal _). by apply. move => hP.
+      - exists (hd tr'). by split => //; apply bisim_reflexive.
+      apply/follows_delay/follows_nil => //. by apply: (hd_append H4 (refl_equal _)).
     simpl in hfalse. rewrite -trace_append_cons in hP.
-    have hfinite: fin (Tcons (hd tr') tr') (hd tr'0). by apply fin_delay.
+    have hfinite: fin (Tcons (hd tr') tr') (hd tr'0) by apply fin_delay.
     clear H4. clear h3.
-    have := hafter _ hP => {hP hafter}. move => [tr0 h3].
-    move heq: (Tcons (hd tr') tr') => tr1. rewrite heq in h3 hfinite.
-    have := tsemax2_complete_aux hfinite (refl_equal _) h3 H3 => {H3}.
-    move => h6. have := append_assoc_L h6. clear h6. move => h6.
-    have := hfalse _ h6. clear heq. clear h6.
-    move => h6. have := tsemax2_complete_aux2 hfinite h3. move => h7.
-    have := h6 h7 => {h6 h7}. move => h6. absurd False => //.
+    move: (hafter _ hP) => {hP hafter} [tr0 h3].
+    move heq: (Tcons (hd tr') tr') => tr1.
+    rewrite heq in h3 hfinite.
+    have h6 := tsemax2_complete_aux hfinite (refl_equal _) h3 H3 => {H3}.
+    have {}h6 := append_assoc_L h6.
+    have {heq}h6 := hfalse _ h6.
+    have h7 := tsemax2_complete_aux2 hfinite h3.
+    by move: (h6 h7).
 
   (* end of hn0 *)
-
 
   have hpre: forall n, (eval_true a andS J0 andS Len J1 n) ->>
   (eval_true a andS u andS J0 andS Len (p *** [|u|] *** Q) n).
   * move => n st0 [h0 [h1 h2]]. split => //. split => //.
-  rewrite /J0 in h1. have h3:((<< u0 andS w >>) *** Iter (p *** (<< u >>)))
-  =>> <<u>> *** Iter (ttT *** <<u>>). apply Append_monotone.
-  apply Dup_monotone. move => st1 [h3 h4]. have := H _ h3. done.
-  apply Iter_monotone. apply Append_monotone_L => //.
-  have := assertT_imp_trans h3 (@iter_last_dup _) => {h3}. move => h3.
-  have := Last_monotone h3 => {h3}. move => h3. have := h3 _ h1 => {h3 h1}.
-  apply Last_chop_sglt. split => //. rewrite /J1 in h2. rewrite /Q.
-  have := Len_monotone _ h2. apply.
-  have := impT_conseq_L (@Append_assoc_R _ _ _). apply.
-  have := impT_conseq_L (@Append_assoc_R _ _ _). apply.
-  have := impT_conseq_L (Append_monotone_L (@Append_assoc_L _ _ _)). apply.
-  have h3: ([|u|] *** <<u>>) =>> <<u>>.
-  * move => st1. simpl. move => [tr0 [[st2 [h3 h5]] h4]]. inv h5.
-    inv h4. done.
-  have := impT_conseq_L (Append_monotone_L (Append_monotone_R h3)). apply.
-  have := impT_conseq_L (@Append_assoc_R _ _ _). apply.
-  have := Append_monotone_L. apply. apply Iter_fold_L.
+    + rewrite /J0 in h1.
+      have h3:((<< u0 andS w >>) *** Iter (p *** (<< u >>)))
+                =>> <<u>> *** Iter (ttT *** <<u>>).
+      - apply Append_monotone.
+        + apply: Dup_monotone => st1 [h3 h4]. by exact: (H _ h3).
+        by apply/Iter_monotone/Append_monotone_L.
+      have {}h3 := assertT_imp_trans h3 (@iter_last_dup _).
+      have {}h3 := Last_monotone h3.
+      move: (h3 _ h1) => {h3 h1}.
+      by apply: Last_chop_sglt.
+    split => //. rewrite /J1 in h2. rewrite /Q.
+    apply: (Len_monotone _ h2).
+    apply: (impT_conseq_L (@Append_assoc_R _ _ _)).
+    apply: (impT_conseq_L (@Append_assoc_R _ _ _)).
+    apply: (impT_conseq_L (Append_monotone_L (@Append_assoc_L _ _ _))).
+    have h3: ([|u|] *** <<u>>) =>> <<u>>.
+    * move => st1 /= [tr0 [[st2 [h3 h5]] h4]]. inv h5.
+      by inv h4.
+    apply: (impT_conseq_L (Append_monotone_L (Append_monotone_R h3))).
+    apply: (impT_conseq_L (@Append_assoc_R _ _ _)).
+    by apply/Append_monotone_L/Iter_fold_L.
 
   (* end of hpre *)
 
   have hpost: forall n, n > 0 -> (Last ([|J0|] *** p *** [|u|]) andS Len Q n) ->>
   (exS (fun k => (fun st => k < n) andS J0 andS Len J1 k)).
-  * clear hn0 hpre. move => n hn st0 h0. rewrite /J0 in h0.
-    have: (Last (<<u0 andS w>> *** Iter (p *** <<u>>)) andS Len Q n) st0.
-    move: h0 => [h0 h1]. split => //. clear h1. have := Last_Last h0.
-    clear h0. move => h0.
-    have := Last_monotone (@Append_assoc_R _ _ _) h0. clear h0. move => h0.
-    have := Last_dup h0 => {h0}. move => h0.
-    have := Last_monotone (@Append_assoc_L _ _ _) h0 => {h0}. move => h0.
-    have := Last_monotone (@Append_assoc_L _ _ _) h0 => {h0}.
-    apply Last_monotone. apply Append_monotone_R.
-    apply Iter_unfold_1.
-    clear h0. rewrite /Q. move => h0.
-    have : (Last (<< u0 andS w >> *** Iter (p *** << u >>))
+  * move => {hn0 hpre} n hn st0 h0. rewrite /J0 in h0.
+    have {}h0 : (Last (<<u0 andS w>> *** Iter (p *** <<u>>)) andS Len Q n) st0.
+    - move: h0 => [h0 h1]. split => // {h1}.
+      have {}h0 := Last_Last h0.
+      have {}h0 := Last_monotone (@Append_assoc_R _ _ _) h0.
+      have {}h0 := Last_dup h0.
+      have {}h0 := Last_monotone (@Append_assoc_L _ _ _) h0.
+      move: (Last_monotone (@Append_assoc_L _ _ _) h0) => {h0}.
+      by apply/Last_monotone/Append_monotone_R/Iter_unfold_1.
+    rewrite /Q in h0.
+    have {}h0 : (Last (<< u0 andS w >> *** Iter (p *** << u >>))
       andS Len (Iter (p *** << u >>) *** [|eval_false a|] *** r)
     (n-1)) st0.
     * destruct h0 as [h0 h1]. split => //. destruct p as [p hp].
       destruct r as [r hr]. move => tr0 [h2 h3]. simpl in h3.
-      have: len n (Tcons (hd tr0) tr0).
-      apply h1. simpl. split => //. have hu := tsemax2_complete_aux3 H h0.
-      exists (Tcons (hd tr0) (Tnil (hd tr0))). split. exists (hd tr0).
-      split => //. rewrite h2. done. apply bisim_reflexive. apply follows_delay.
-      apply follows_nil => //.
-      move => h4. inv h4. rewrite (_: S n0 - 1 = n0); last by lia. done.
-     clear h0. move => h0.
+      have h4 : len n (Tcons (hd tr0) tr0).
+      + apply: h1=>/=. split => //.
+        have hu := tsemax2_complete_aux3 H h0.
+        exists (Tcons (hd tr0) (Tnil (hd tr0))). split.
+        - exists (hd tr0). by split => //; [rewrite h2 | apply: bisim_reflexive].
+        by apply/follows_delay/follows_nil.
+      inv h4. by rewrite (_: S n0 - 1 = n0); last by lia.
     fold J0 in h0. fold J1 in h0. exists (n-1). destruct h0 as [h0 h1].
-    split => //. lia.
+    by split => //; lia.
 
    (* end of hpost *)
 
   case.
-  * have := tsemax2_conseq_L hn0 => {hn0}. apply. apply tsemax2_false.
-  * move => n. have hn : (S n) > 0; first by lia.
-    have := tsemax2_conseq (hpre _) (hpost _ hn) => {hpre hpost hn hn0}. apply.
+  * apply: (tsemax2_conseq_L hn0) => {hn0}. by apply: tsemax2_false.
+  * move => n.
+    have hn : (S n) > 0 by lia.
+    apply: (tsemax2_conseq (hpre _) (hpost _ hn)) => {hpre hpost hn hn0}.
     have hpre : (eval_true a andS u andS J0 andS Len (p *** [|u|] *** Q) (S n))
     ->> (eval_true a andS u andS J0 andS (Len ([|J0|] *** p *** [|u|] *** Q) (S n))).
     * move => st0 [h0 [h1 [h2 h3]]]. split => //. split => //. split => //.
-      move => tr0 [h4 h5]. apply h3. split => //. have := Singleton_Append _.
-      apply. apply h5.
-    have := tsemax2_conseq_L hpre => {hpre}. apply.
-    have := tsemax2_conseq _ _ (IHsemax (S n) J0 Q _) => {IHsemax}. apply => //.
-    move => st0 [h0 [h1 [h2 h3]]]. split => //. split => //. move => tr0 [h4 h5].
-    apply h3. split => //. have := (@Append_assoc_L _ _ _ _ h5) => {h5}.
-    move => h5. destruct p as [p hp]. destruct r as [r hr].
-    simpl. simpl in h5. exists (Tnil (hd tr0)). split. exists st0.
-    split => //. rewrite h4. apply bisim_reflexive. apply follows_nil => //.
+      move => tr0 [h4 h5]. apply h3. split => //.
+      by apply/Singleton_Append/h5.
+    apply: (tsemax2_conseq_L hpre) => {hpre}.
+    apply: (tsemax2_conseq _ _ (IHsemax (S n) J0 Q _)) => {IHsemax} //.
+    * move => st0 [h0 [h1 [h2 h3]]]. split => //. split => // tr0 [h4 h5].
+      apply h3. split => //.
+      move: (@Append_assoc_L _ _ _ _ h5) => {}h5.
+      destruct p as [p hp]. destruct r as [r hr].
+      simpl. simpl in h5. exists (Tnil (hd tr0)). split.
+      - exists st0. by split => //; rewrite h4; apply: bisim_reflexive.
+    by apply: follows_nil.
 
 (* prove after ([J0] *** p *** [u]) Q *)
     rewrite /J0. apply after_Append.
-    have := after_monotone_L (@Append_assoc_L _ _ _) hafter => {hafter}.
-    move => hafter.
+    move: (after_monotone_L (@Append_assoc_L _ _ _) hafter) => {}hafter.
     have h0: <<u0 andS w>> =>> [|w|] *** <<u0>>.
-    * move => tr0. simpl. move => [st0 [h0 h1]]. inv h1. inv H3. destruct h0 as [h0 h1].
-      exists (Tnil st0). split. exists st0. split => //. apply bisim_reflexive.
-      apply follows_nil => //. exists st0. split => //. apply bisim_reflexive.
-      have := after_monotone_L (Append_monotone_L h0) hafter => {hafter h0}. move => hafter.
+    * move => tr0 /= [st0 [h0 h1]]. inv h1. inv H3. destruct h0 as [h0 h1].
+      exists (Tnil st0). split.
+      - exists st0. by split => //; apply: bisim_reflexive.
+      apply follows_nil => //. exists st0. by split => //; apply: bisim_reflexive.
+    move: (after_monotone_L (Append_monotone_L h0) hafter) => {h0}hafter.
 
     have h0: after (<< u0 andS w >> *** Iter (p *** << u >>) *** p *** [|u|])
     (<< u >> *** Iter (p *** << u >>) *** [|eval_false a|]).
@@ -521,7 +545,7 @@ induction 1.
 
    destruct p as [p hp]. rewrite /Q. destruct r as [r hr]. simpl.
    simpl in hafter. simpl in h0. move => tr0 h1.
-   have := append_assoc_L h1 => {h1}. move => h1.
+   move: (append_assoc_L h1) => {}h1.
    have := h0 _ h1 => {h0}. move => [tr1 h0].
    have :((dup (u0 andS w) *+* iter (p *+* dup u) *+* p *+* singleton u)
    *+* (dup u *+* iter (p *+* dup u) *+* singleton (eval_false a))) tr1.
@@ -707,7 +731,8 @@ Lemma tsemax_correct_semax: forall u s v, tsemax u s v ->
  forall u0, semax (u andS u0) s ([|u0|] *** Finite *** [|v|]).
 Proof.
 induction 1.
-- move => u0. have h0 := semax_skip (u andS u0).
+- move => u0.
+  have h0 := semax_skip (u andS u0).
   have h1: [|u andS u0 |] =>> ([|u0|] *** Finite *** [|u|]).
   * clear h0. move => tr0 [st0 [h0 h1]]. inv h1. move: h0 => [h0 h1].
     exists (Tnil st0). split. exists st0. split; [done | apply bisim_reflexive].
