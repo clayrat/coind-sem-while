@@ -137,10 +137,10 @@ cofix COINDHYP=> tr1 tr2 h2. inv h2.
 Qed.
 
 Lemma Redm_loop_skip: forall a s st,
-is_true (a st) = true ->
-red s st = None ->
-bisim (Redm (Sseq s (Swhile a s)) st)
- (loop (Redm s) (fun st0 => is_true (a st0)) st).
+  is_true (a st) ->
+  red s st = None ->
+  bisim (Redm (Sseq s (Swhile a s)) st)
+   (loop (Redm s) (fun st0 => is_true (a st0)) st).
 Proof.
 move => a s st h1 h2.
 cofix COINDHYP.

@@ -11,40 +11,37 @@ Definition follows_dec : forall p tr0 tr1 (h: follows p tr0 tr1),
 Proof.
 move=>p tr0 tr1 h.
 destruct tr0.
-- left; exists tr1, s. by inversion h; subst.
+- left; exists tr1, s. by inv h.
 - destruct tr1.
-  * left; exists (Tnil s0), s0. by inversion h; subst.
-  * right; exists tr0, tr1, s. by inversion h; subst.
+  * left; exists (Tnil s0), s0. by inv h.
+  * right; exists tr0, tr1, s. by inv h.
 Defined.
 
 CoFixpoint midp_dec (p0 p1: trace -> Prop) tr0 tr1 (h: follows (append p0 p1) tr0 tr1) : trace.
 Proof.
 case (follows_dec h).
-- case => tr; case => st; case => h1; case => h2 h3.
+- move=>[tr][st][h1][h2]h3.
   apply constructive_indefinite_description in h3.
-  by case: h3 => x [h4 h5].
-- case => tr; case => tr'; case => st; case => h1; case => h2 h3.
-  by apply (Tcons st (@midp_dec _ _ _ _ h3)).
+  by case: h3.
+- move=>[tr][tr'][st][h1][h2]h3.
+  by apply/Tcons/midp_dec/h3.
 Defined.
 
-Lemma midp_midp_dec : forall (p0 p1: trace -> Prop)  tr0 tr1 (h : follows (append p0 p1) tr0 tr1),
- midp h (midp_dec h).
+Lemma midp_midp_dec :
+  forall (p0 p1: trace -> Prop) tr0 tr1 (h : follows (append p0 p1) tr0 tr1),
+  midp h (midp_dec h).
 Proof.
 cofix CIH.
 dependent inversion h.
-- subst.
-  intros.
-  rewrite [midp_dec _]trace_destr /=.
-  case (constructive_indefinite_description _ _); simpl.
-  move => x [a0 hm].
-  by apply midp_follows_nil => //; destruct x.
-- subst.
-  rewrite [midp_dec _]trace_destr /=.
+- subst; rewrite [midp_dec _]trace_destr /=.
+  case (constructive_indefinite_description _ _)=>/= x [a0 hm].
+  by apply midp_follows_nil=> //; destruct x.
+- subst; rewrite [midp_dec _]trace_destr /=.
   by apply (@midp_follows_delay p0 p1 (Tcons st tr) (Tcons st tr') (follows_delay st f) tr tr' f st (midp_dec f)).
 Qed.
 
 Lemma append_assoc_R: forall p1 p2 p3,
- forall tr, (append p1 (append p2 p3)) tr -> (append (append p1 p2)  p3) tr.
+  forall tr, (append p1 (append p2 p3)) tr -> (append (append p1 p2)  p3) tr.
 Proof.
 move => p1 p2 p3 tr0 [tr1 [h1 h2]].
 exists (midp_dec h2). split.
@@ -78,8 +75,7 @@ Lemma singleton_last_fin: forall p q tr0,
  forall st, fin tr0 st -> { tr1 | q tr1 /\ hd tr1 = st}.
 Proof.
 move => p q tr0 h0 h1 st0 h2.
-have h3: singleton (last p) (Tnil st0)
-  by exists st0; split; [exists tr0|apply: bisim_reflexive].
+have h3: singleton (last p) (Tnil st0) by apply: mk_singleton_nil; exists tr0.
 have h := h0 _ h3 => {h0 h3}.
 move/constructive_indefinite_description: h => [tr1 h0]. exists tr1. by inv h0.
 Qed.
@@ -89,11 +85,10 @@ Lemma fin_hd_follows : forall q tr0,
  exists tr1, follows q tr0 tr1.
 Proof.
 move => q tr0 h2. exists (f h2).
-move: tr0 h2. cofix hcoind => t0. dependent inversion t0.
-- move => h0. rewrite [f _]trace_destr /=.
-  destruct (h0 s (fin_nil s)).
+move: tr0 h2. cofix CIH => t0.
+dependent inversion t0 => h0; rewrite [f _]trace_destr /=.
+- destruct (h0 s (fin_nil s)).
   destruct a.
   by destruct x; apply follows_nil.
-- move => h0. rewrite [f _]trace_destr /=.
-  by apply/follows_delay/hcoind.
+- by apply/follows_delay/CIH.
 Qed.

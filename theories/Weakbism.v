@@ -12,7 +12,7 @@ Axiom xy : x =? y = false.
 Variable cond : expr. (* y <> 0 *)
 Axiom cond_true: forall st, eval_true cond st -> (st y <> 0).
 Variable tt : expr.
-Axiom tt_true: forall st, is_true (tt st) = true.
+Axiom tt_true: forall st, is_true (tt st).
 
 Lemma yx : y =? x = false.
 Proof. by rewrite Nat.eqb_sym; apply xy. Qed.
