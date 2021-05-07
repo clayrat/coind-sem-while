@@ -45,10 +45,10 @@ with execseq1: stmt -> trace -> trace -> Prop :=
 
 Lemma lemma1: forall st tr, exec1 (Swhile tt Sskip) st tr.
 Proof.
-cofix COINDHYP=> st tr. apply: exec1_while_loop.
+cofix CIH=> st tr. apply: exec1_while_loop.
 * by apply: tt_spec.
 * by apply: exec1_skip.
-* by apply/exec1_nil/COINDHYP.
+* by apply/exec1_nil/CIH.
 Qed.
 
 CoInductive last_true (e: expr): trace -> Prop :=
@@ -113,26 +113,26 @@ Lemma lemma2: forall st tr, exec2 (Swhile tt Sskip) st tr.
 Proof.
 move=>??; apply: exec2_intro.
 suff: forall tr tr', execseq2 (Swhile tt Sskip) tr tr' by apply.
-cofix COINDHYP=> tr tr'.
+cofix CIH=> tr tr'.
 apply: (@execseq2_while_loop _ _ _ (duplast tr) tr').
-* move: tr. cofix COINDHYP2. case=>st.
+* move: tr. cofix CIH2. case=>st.
   - by apply/last_true_nil/tt_spec.
-  - move => tr. by apply/last_true_cons/COINDHYP2.
+  - move => tr. by apply/last_true_cons/CIH2.
 * by apply: execseq2_skip.
-* by apply: COINDHYP.
+* by apply: CIH.
 Qed.
 
-Lemma lemma3: forall x st tr, exec2 (Swhile tt (Sassign x (fun st => (st x + 1)))) st tr.
+Lemma lemma3: forall x st tr, exec2 (Swhile tt (Sassign x (fun st => st x + 1))) st tr.
 Proof.
 move=>x ??; apply: exec2_intro.
-suff: forall tr tr', execseq2 (Swhile tt (Sassign x (fun st => (st x + 1)))) tr tr' by apply.
-cofix COINDHYP=> tr0 tr1.
-apply: (@execseq2_while_loop _ _ _ (updatelast x (fun st => (st x + 1)) (duplast tr0)) tr1).
-* move: tr0. cofix COINDHYP0. case=>st.
+suff: forall tr tr', execseq2 (Swhile tt (Sassign x (fun st => st x + 1))) tr tr' by apply.
+cofix CIH=> tr0 tr1.
+apply: (@execseq2_while_loop _ _ _ (updatelast x (fun st => st x + 1) (duplast tr0)) tr1).
+* move: tr0. cofix CIH0. case=>st.
   - by apply/last_true_nil/tt_spec.
-  - move=>tr. by apply/last_true_cons/COINDHYP0.
+  - move=>tr. by apply/last_true_cons/CIH0.
 * by apply: execseq2_assign.
-* by apply: COINDHYP.
+* by apply: CIH.
 Qed.
 
 End Exec.
@@ -176,25 +176,25 @@ CoInductive exec3: stmt -> state -> trace -> Prop :=
 
 Lemma lemma4: forall s st tr, exec3 s st tr -> exec s st tr.
 Proof.
-cofix COINDHYP=> s st tr h1. inv h1.
+cofix CIH=> s st tr h1. inv h1.
 - by apply: exec_skip.
 - by apply: exec_assign.
-- apply: (exec_seq (COINDHYP _ _ _ H0)).
+- apply: (exec_seq (CIH _ _ _ H0)).
   move => {H0}. move: tr' st' tr'' tr H H1.
-  cofix COINDHYP0=> st0 st1 tr0 tr1 h1 h2. inv h1.
-  - by apply/execseq_nil/COINDHYP.
-  - by apply/execseq_nil/COINDHYP.
-  - by apply/execseq_cons/(COINDHYP0 _ _ _ _ H h2).
+  cofix CIH0=> st0 st1 tr0 tr1 h1 h2. inv h1.
+  - by apply/execseq_nil/CIH.
+  - by apply/execseq_nil/CIH.
+  - by apply/execseq_cons/CIH0/h2.
 - apply: exec_ifthenelse_true=>//.
-  by apply/execseq_cons/execseq_nil/COINDHYP.
+  by apply/execseq_cons/execseq_nil/CIH.
 - apply: exec_ifthenelse_false=>//.
-  by apply/execseq_cons/execseq_nil/COINDHYP.
+  by apply/execseq_cons/execseq_nil/CIH.
 - by apply: exec_while_false.
 - apply: exec_while_loop=>//.
-  * by apply/execseq_cons/execseq_nil/(COINDHYP _ _ _ H1).
+  * by apply/execseq_cons/execseq_nil/CIH/H1.
   * apply: execseq_cons => {H0 H1}. move: tr0 st' tr' tr'' H H2.
-    cofix COINDHYP0=> tr0 st0 tr1 tr2 h1 h2. inv h1.
-    - by apply/execseq_nil/COINDHYP.
-    - by apply/execseq_nil/COINDHYP.
-    - by apply/execseq_cons/(COINDHYP0 _ _ _ _ H h2).
+    cofix CIH0=> tr0 st0 tr1 tr2 h1 h2. inv h1.
+    - by apply/execseq_nil/CIH.
+    - by apply/execseq_nil/CIH.
+    - by apply/execseq_cons/CIH0/h2.
 Qed.

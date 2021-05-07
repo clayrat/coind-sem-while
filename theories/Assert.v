@@ -355,7 +355,7 @@ Lemma append_monotone_R: forall (p q0 q1: trace -> Prop),
 Proof. move => p q0 q1 hq. by apply: append_cont. Qed.
 
 Lemma append_setoid: forall (p0 p1: trace -> Prop),
-  setoid p1 -> setoid (append p0 p1).
+  setoid p1 -> setoid (p0 *+* p1).
 Proof.
 move => p0 p1 hp1 tr0 [tr2 [h0 h2]] tr1 h1.
 exists tr2. split; first by apply: h0.
@@ -372,15 +372,15 @@ Proof. move => p q. cofix CIH. case=>st0.
   by apply/follows_delay/CIH/H3.
 Qed.
 
-CoInductive midp (p0 p1: trace -> Prop) (tr0 tr1: trace) (h: follows (append p0 p1) tr0 tr1) : trace -> Prop :=
+CoInductive midp (p0 p1: trace -> Prop) (tr0 tr1: trace) (h: follows (p0 *+* p1) tr0 tr1) : trace -> Prop :=
 | midp_follows_nil :
   forall tr, tr0 = Tnil (hd tr1) -> p0 tr -> follows p1 tr tr1 -> midp h tr
 | midp_follows_delay :
-  forall (tr2 tr3 :trace) (h1: follows (append p0 p1) tr2 tr3) (st : state) tr',
+  forall (tr2 tr3 :trace) (h1: follows (p0 *+* p1) tr2 tr3) (st : state) tr',
   tr0 = Tcons st tr2 -> tr1 = Tcons st tr3 -> @midp p0 p1 tr2 tr3 h1 tr' ->
   midp h (Tcons st tr').
 
-Lemma midp_before: forall p0 p1 tr0 tr1 (h: follows (append p0 p1) tr0 tr1) tr',
+Lemma midp_before: forall p0 p1 tr0 tr1 (h: follows (p0 *+* p1) tr0 tr1) tr',
   midp h tr' ->
   follows p0 tr0 tr'.
 Proof.
@@ -401,7 +401,7 @@ cofix CIH. dependent inversion h.
   by apply/follows_delay/(CIH _ _ _ _ h1).
 Qed.
 
-Lemma midp_after: forall p0 p1 tr0 tr1 (h: follows (append p0 p1) tr0 tr1) tr',
+Lemma midp_after: forall p0 p1 tr0 tr1 (h: follows (p0 *+* p1) tr0 tr1) tr',
   midp h tr' ->
   follows p1 tr' tr1.
 Proof.
@@ -422,7 +422,7 @@ by apply/follows_delay/(CIH _ _ _ _ h1).
 Qed.
 
 Lemma append_assoc_L: forall p1 p2 p3 tr,
-  (append (append p1 p2) p3) tr -> append p1 (append p2 p3) tr.
+  ((p1 *+* p2) *+* p3) tr -> (p1 *+* (p2 *+* p3)) tr.
 Proof.
 move => p1 p2 p3 tr0 [tr1][[tr2][h1 h3] h2].
 exists tr2. split=>// {h1}.
@@ -435,7 +435,7 @@ Qed.
 (* Proposition 3.1: ** is setoid. *)
 Definition Append (p1 p2: assertT): assertT.
 destruct p1 as [f0 h0]. destruct p2 as [f1 h1].
-exists (append f0 f1).
+exists (f0 *+* f1).
 move => tr0 [tr1 [h2 h3]] tr2 h4. exists tr1.
 split=>//. by apply/follows_setoid_R/h4.
 Defined.
@@ -663,7 +663,7 @@ move => tr0 h0. inv h0.
 Qed.
 
 Lemma iter_append_dup: forall (u : state -> Prop) p tr,
-  u (hd tr) -> iter (append p (dup u)) tr ->
+  u (hd tr) -> iter (p *+* (dup u)) tr ->
   follows (singleton u) tr tr.
 Proof.
 move => u p. cofix CIH=> tr h0 h1. inv h1.
@@ -738,9 +738,9 @@ Defined.
 Lemma infinite_implies_true_chop_false: Infinite =>> (ttT *** [|ffS|]).
 Proof.
 move => tr0 [st0 tr1] hinfinite /=. exists (Tcons st0 tr1). split => // {tr0}.
-move: st0 tr1 hinfinite. cofix hcofix=> st0 tr0 h.
+move: st0 tr1 hinfinite. cofix CIH=> st0 tr0 h.
 apply follows_delay. inv h.
-by apply/hcofix/H.
+by apply/CIH/H.
 Qed.
 
 (* Lemma 3.4 (7), <= *)
@@ -893,7 +893,7 @@ Qed.
 
 
 (* Lemma 3.4, (11) *)
-Lemma last_chop: forall p q st, last (append p q) st -> last q st.
+Lemma last_chop: forall p q, last (p *+* q) ->> last q.
 Proof.
 move => p q st [tr0] [[tr [_ h2]] h1].
 move: tr0 st h1 tr h2. induction 1=> tr0 h0; inv h0.
@@ -992,7 +992,7 @@ move => u v st0 [h0 h1]. exists (Tnil st0). split.
 * by apply: fin_nil.
 Qed.
 
-Lemma fin_lastdup: forall tr st, fin tr st -> fin (lastdup tr) st.
+Lemma fin_lastdup: forall tr, fin tr ->> fin (lastdup tr).
 Proof.
 induction 1; rewrite [lastdup _]trace_destr /=.
 - by apply/fin_delay/fin_nil.
@@ -1009,6 +1009,12 @@ exists (lastdup tr0). split.
   - by apply: (hp _ h0 _ h3).
   - by apply: follows_dup.
 * by apply: fin_lastdup.
+Qed.
+
+Lemma Last_destruct : forall (p: assertT) tr,
+ satisfy p tr -> fin tr ->> Last p.
+Proof.
+move => [f h] tr /= h0 st h1. by exists tr.
 Qed.
 
 Lemma hd_append: forall tr0 st0, fin tr0 st0 ->

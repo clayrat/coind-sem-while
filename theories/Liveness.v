@@ -29,8 +29,7 @@ Proof.
 induction 1=> tr0 h0; inv h0.
 - by apply: x_is_n_nil.
 - by apply: x_is_n_cons.
-- apply: x_is_n_delay.
-  by exact: (IHeventually_x_is_n _ H3).
+- by apply/x_is_n_delay/IHeventually_x_is_n.
 Qed.
 
 Definition Eventually_x_is_n (n:nat): assertT.
@@ -44,27 +43,22 @@ x := 0; while true (x := x + 1)
 Definition s : stmt := x <- (fun _ => 0);; Swhile tt (x <- incr_x).
 
 (* Proposition 5.2 *)
-Lemma prg_spec: forall (n:nat), semax ttS s (Eventually_x_is_n n).
+Lemma prg_spec: forall (n: nat), semax ttS s (Eventually_x_is_n n).
 Proof.
 move => n.
 have hs0: semax ttS (x <- (fun _ => 0))
             (Updt ttS x (fun _ => 0) *** [| x_is_zero |]).
-* apply: (semax_conseq_R _ (semax_assign _ _ _)) => tr /= h0.
+* apply/semax_conseq_R/semax_assign=> tr /= h0.
   exists tr. split => //.
   inv h0. destruct H as [_ h0]. inv h0. inv H1.
-  apply/follows_delay/follows_nil => //.
-  exists (update x 0 x0). split => //.
-  + by rewrite /update /x_is_zero Nat.eqb_refl.
-  by apply: bisim_reflexive.
+  apply/follows_delay/follows_nil/mk_singleton_nil => //.
+  by rewrite /update /x_is_zero Nat.eqb_refl.
 have hs1 : semax x_is_zero (Swhile tt (x <- incr_x)) (Eventually_x_is_n n).
 have h0 := semax_assign ttS x incr_x.
 have h1 : (ttS andS eval_true tt) ->> ttS by [].
 have h2 : (Updt ttS x incr_x) =>> (Updt ttS x incr_x) *** [| ttS |].
 * move => tr0 {h1}h0. exists tr0. split => // {h0}.
-  move: tr0. cofix hcoind. case=> st0.
-  + apply follows_nil => //. by apply: mk_singleton_nil.
-  move =>tr0.
-  by apply: (follows_delay _ (hcoind tr0)).
+  by exact: follows_ttS.
 have h3 := semax_conseq h1 h2 h0 => {h0 h1 h2}.
 have h0 : x_is_zero ->> ttS by [].
 have h1 := semax_while h0 h3 => {h0 h3}.
@@ -86,7 +80,8 @@ have h0 : ((<< x_is_zero >>) ***
       move: H => [tr2 [[st0 [_ h0]] h2]].
       inv h0. inv H2. inv h2. inv H0. inv H3.
       move: H1 => [st1 [_ h2]]. inv h2. simpl in H0.
-      inv H2. inv h1. inv H4. inv H3. inv H2. simpl. apply x_is_n_delay.
+      inv H2. inv h1. inv H4. inv H3. inv H2. simpl.
+      apply x_is_n_delay.
       have h0 := follows_singleton H5.
       have h1: append (iter (append (updt ttS x incr_x) (dup ttS)))
        (singleton (eval_false tt)) tr'1.

@@ -74,14 +74,14 @@ Lemma redm_deterministic:
 forall st s tr1 tr2, redm st s tr1 -> redm st s tr2 ->
 bisim tr1 tr2.
 Proof.
-cofix COINDHYP=> st s tr1 tr2 h1 h2. inv h1.
+cofix CIH=> st s tr1 tr2 h1 h2. inv h1.
 - inv h2.
   - by apply: bisim_nil.
   - by move: (stop_step_exclusive H H0).
 - inv h2.
   - by move: (stop_step_exclusive H1 H).
   - have h3 := step_deterministic H H1. inv h3.
-    by apply/bisim_cons/(COINDHYP _ _ _ _ H0).
+    by apply/bisim_cons/(CIH _ _ _ _ H0).
 Qed.
 
 (* setoid *)
@@ -89,9 +89,9 @@ Lemma redm_insensitive:
 forall s st tr1 tr2, redm s st tr1 -> bisim tr1 tr2 ->
 redm s st tr2.
 Proof.
-cofix COINDHYP=> st s tr1 tr2 h1 h2. inv h1.
+cofix CIH=> st s tr1 tr2 h1 h2. inv h1.
 - inv h2. by apply: (redm_stop _ H).
-- inv h2. by apply/redm_step/(COINDHYP _ _ _  _ H0).
+- inv h2. by apply/redm_step/(CIH _ _ _  _ H0).
 Qed.
 
 Lemma red_exec:
@@ -161,10 +161,10 @@ Qed.
 Lemma exec_correct_redm: forall s st tr,
 exec s st tr -> redm s st tr.
 Proof.
-cofix COINDHYP=> s st tr h1. have [h2 | h2] := red_exec h1.
+cofix CIH=> s st tr h1. have [h2 | h2] := red_exec h1.
 - move: h2 => [h3 ->]. by apply: (redm_stop _ h3).
 - move: h2 => [s1][st1][tr1][[h3 h4] h5]. inv h4.
-  apply: (redm_step h3). apply: COINDHYP.
+  apply: (redm_step h3). apply: CIH.
   by apply: (exec_insensitive h5 (bisim_symmetric H1)).
 Qed.
 
@@ -186,7 +186,7 @@ JMeq h h1 ->
 midpoint h1 tr' ->
 redm s1 st tr'.
 Proof.
-cofix COINDHYP. dependent inversion h; subst; move => s2 s3.
+cofix CIH. dependent inversion h; subst; move => s2 s3.
 - move => h1 h2. subst. move => h3. have h4 := JMeq_eq h3. rewrite -h4.
   inversion s1; subst.
   move => hm. inv hm.
@@ -207,7 +207,7 @@ cofix COINDHYP. dependent inversion h; subst; move => s2 s3.
       apply: (redm_step s5).
       have hje: JMeq h' h' by apply JMeq_refl.
       move: hje H0.
-      exact: COINDHYP.
+      exact: CIH.
   - move => h1 h2 h3 h4 h5. inv h3. have h6 := JMeq_eq h5. rewrite -h6 {h5 h6}.
     move => hm. inv hm.
     * inv H.
@@ -242,7 +242,7 @@ forall (h1: redm (Sseq s1 s2) st tr),
 JMeq h h1 ->
 redm_str s2 (midpoint h1) tr.
 Proof.
-cofix COINDHYP. dependent inversion h; subst; move => s2 s3.
+cofix CIH. dependent inversion h; subst; move => s2 s3.
 - move => h1 h2. subst. move => h3. have h4 := JMeq_eq h3. rewrite -h4.
   rewrite [midpoint _]trace_destr. simpl. apply: redm_nil.
   inversion s1; subst. by apply: (redm_stop _ H2).
@@ -250,7 +250,7 @@ cofix COINDHYP. dependent inversion h; subst; move => s2 s3.
   - move => h1 h2 h3. by inversion h3.
   - move => h1 h2 h3 h4 h5. inv h3. have h6 := JMeq_eq h5.
     rewrite -h6. rewrite [midpoint _]trace_destr. simpl.
-    by apply: (redm_cons _ (COINDHYP _ _ _ _ _ _ (refl_equal _) _ (JMeq_refl _))).
+    by apply: (redm_cons _ (CIH _ _ _ _ _ _ (refl_equal _) _ (JMeq_refl _))).
   - move => h1 h2 h3 h4 h5. inv h3. have h6 := JMeq_eq h5. rewrite -h6.
     rewrite [midpoint _]trace_destr. simpl. apply: redm_nil.
     by apply: (redm_step s6 h1).
@@ -269,11 +269,11 @@ Qed.
 (* the small-step relational semantics correct wrt the big-step relational semantics *)
 Lemma redm_correct_exec: forall s st tr, redm s st tr -> exec s st tr.
 Proof.
-cofix COINDHYP.
-have COINDHYP2: forall s tr1 tr2, redm_str s tr1 tr2 -> execseq s tr1 tr2.
-* cofix COINDHYP2. move => s tr1 tr2 h1. inv h1.
-  - by apply: (execseq_nil (COINDHYP _ _ _ H)).
-  - by apply: (execseq_cons _ (COINDHYP2 _ _ _ H)).
+cofix CIH.
+have CIH2: forall s tr1 tr2, redm_str s tr1 tr2 -> execseq s tr1 tr2.
+* cofix CIH2. move => s tr1 tr2 h1. inv h1.
+  - by apply: (execseq_nil (CIH _ _ _ H)).
+  - by apply: (execseq_cons _ (CIH2 _ _ _ H)).
 * case.
   - move => st tr h1. inv h1.
     - by apply: exec_skip.
@@ -285,14 +285,14 @@ have COINDHYP2: forall s tr1 tr2, redm_str s tr1 tr2 -> execseq s tr1 tr2.
       - by inversion H.
   - move => s1 s2 st tr h1. have h2 := midpoint_before h1.
     have h3 := midpoint_after h1.
-    by apply: (exec_seq (COINDHYP _ _ _ h2) (COINDHYP2 _ _ _ h3)).
+    by apply: (exec_seq (CIH _ _ _ h2) (CIH2 _ _ _ h3)).
   - move => a s1 s2 st tr h1. inv h1.
     - by inversion H.
     - inv H.
       - apply: (exec_ifthenelse_true _ H7).
-        by apply: (execseq_cons _ (execseq_nil (COINDHYP _ _ _ H0))).
+        by apply: (execseq_cons _ (execseq_nil (CIH _ _ _ H0))).
       - apply: (exec_ifthenelse_false _ H7).
-        by apply: (execseq_cons _ (execseq_nil (COINDHYP _ _ _ H0))).
+        by apply: (execseq_cons _ (execseq_nil (CIH _ _ _ H0))).
   - move => a s st tr h1. inv h1.
     - by inversion H.
     - inv H.
@@ -301,7 +301,7 @@ have COINDHYP2: forall s tr1 tr2, redm_str s tr1 tr2 -> execseq s tr1 tr2.
         -  by inversion H.
       - have h2 := midpoint_before H0. have h3 := midpoint_after H0.
         apply: (exec_while_loop H6). apply execseq_cons.  apply: execseq_nil.
-        apply (COINDHYP _ _ _ h2). apply: execseq_cons. apply: (COINDHYP2 _ _ _ h3).
+        apply (CIH _ _ _ h2). apply: execseq_cons. apply: (CIH2 _ _ _ h3).
 Qed.
 *)
 

@@ -140,9 +140,9 @@ forall tr1 tr2 tr3 tr4,
 bisim tr1 tr2 ->
 execseq s tr1 tr3 -> bisim tr3 tr4 -> execseq s tr2 tr4.
 Proof.
-move => s hexec0. cofix COINDHYP=> tr1 tr2 tr3 tr4 h1 h2 h3. inv h2.
+move => s hexec0. cofix CIH=> tr1 tr2 tr3 tr4 h1 h2 h3. inv h2.
 - inv h1. by apply/execseq_nil/(hexec0 _ _ _ H).
-- inv h3. inv h1. by apply/execseq_cons/(COINDHYP _ _ _ _ H4 H).
+- inv h3. inv h1. by apply/execseq_cons/(CIH _ _ _ _ H4 H).
 Qed.
 
 Lemma exec_seq_insensitive0: forall s1 s2,
@@ -165,18 +165,18 @@ forall st tr1 tr2, exec (Swhile a s) st tr1 ->
 bisim tr1 tr2 ->
 exec (Swhile a s) st tr2.
 Proof.
-move => a s hwhile. cofix COINDHYP.
-have COINDHYP2: forall tr1 tr2 tr3 tr4, bisim tr1 tr2 ->
+move => a s hwhile. cofix CIH.
+have CIH2: forall tr1 tr2 tr3 tr4, bisim tr1 tr2 ->
 execseq (Swhile a s) tr1 tr3 -> bisim tr3 tr4 ->
 execseq (Swhile a s) tr2 tr4.
-* cofix COINDHYP2 => tr1 tr2 tr3 tr4 h1 h2 h3. inv h2.
-  - inv h1. by apply/execseq_nil/(COINDHYP _ _ _ H).
-  - inv h1. inv h3. by apply/execseq_cons/(COINDHYP2 _ _ _ _ H3 H).
+* cofix CIH2 => tr1 tr2 tr3 tr4 h1 h2 h3. inv h2.
+  - inv h1. by apply/execseq_nil/(CIH _ _ _ H).
+  - inv h1. inv h3. by apply/execseq_cons/(CIH2 _ _ _ _ H3 H).
 -move => st tr1 tr2 h1 h2. inv h1.
 - inv h2. inv H2. by apply: (exec_while_false _ H3).
 - inv H2. inv H6. inv H5. inv h2.
   apply: (exec_while_loop H1 (execseq_cons _ (execseq_nil H2))).
-  by apply/execseq_cons/(COINDHYP2 _ _ _ _ (bisim_reflexive tr') H6).
+  by apply/execseq_cons/(CIH2 _ _ _ _ (bisim_reflexive tr') H6).
 Qed.
 
 (* setoid *)
@@ -198,9 +198,9 @@ Qed.
 Lemma execseq_insensitive_pre: forall s tr1 tr2 tr3,
 bisim tr1 tr2 -> execseq s tr1 tr3 -> execseq s tr2 tr3.
 Proof.
-cofix COINDHYP=> s tr1 tr2 tr3 h1 h2. inv h2; inv h1.
+cofix CIH=> s tr1 tr2 tr3 h1 h2. inv h2; inv h1.
 - by exact: execseq_nil.
-- by apply/execseq_cons/(COINDHYP _ _ _ _ H3).
+- by apply/execseq_cons/(CIH _ _ _ _ H3).
 Qed.
 
 Lemma exec_hd: forall s st tr,

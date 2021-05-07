@@ -40,7 +40,7 @@ Lemma semax_conseq_R: forall u s p q,
 Proof. move => u s p q h0 h1. by apply/semax_conseq/h1. Qed.
 
 Lemma semax_conseq_L: forall u v s p,
-v ->> u -> semax u s p -> semax v s p.
+  v ->> u -> semax u s p -> semax v s p.
 Proof. move => u v s p h0 h1. by apply/semax_conseq/h1. Qed.
 
 Lemma push_pre_andS: forall u s p, semax u s p -> forall v, semax (u andS v) s ([|v|] *** p).
@@ -68,8 +68,7 @@ induction 1=>v0.
   move => tr0 /= [tr1][[st0][[h0 h2] h3] h1].
   inv h3. inv H3. inv h1. inv H4.
   destruct H3 as [st0 [h1 h3]]. inv h3. simpl in h0. simpl in h2. simpl.
-  exists (Tnil st0). split; first by exact: mk_singleton_nil.
-  by apply/follows_nil/mk_dup.
+  by apply/Sglt_Dup_2/mk_dup.
 - apply/semax_conseq_R/semax_while/H0.
   * apply/impT_conseq_L/Append_assoc_L/Append_monotone_L.
     apply/impT_conseq_L/Sglt_Dup_2/Dup_monotone.

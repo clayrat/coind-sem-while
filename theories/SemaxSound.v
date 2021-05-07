@@ -27,23 +27,23 @@ induction 1 => st0 tr0 hexec hu.
      - inv h0. by apply/follows_delay/CIH/H.
 - destruct p as [f hf]. exists (Tcons st0 (Tnil st0)). inv hexec.
  * inv H7. inv H5. split; first by exact: mk_dup.
-  * apply/follows_delay/follows_nil; first by exact: exec_hd H3.
-    have h1: (u andS eval_true a) st0 by split.
-    by apply: (IHsemax1 _ _ H3 h1).
+   apply/follows_delay/follows_nil; first by exact: exec_hd H3.
+   have h1: (u andS eval_true a) st0 by split.
+   by apply: (IHsemax1 _ _ H3 h1).
  * inv H7. inv H5. split; first by exact: mk_dup.
-   * apply/follows_delay/follows_nil; first by exact: exec_hd H3.
-  * have h1: (u andS eval_false a) st0 by split.
-    by apply: (IHsemax2 _ _ H3 h1).
+   apply/follows_delay/follows_nil; first by exact: exec_hd H3.
+   have h1: (u andS eval_false a) st0 by split.
+   by apply: (IHsemax2 _ _ H3 h1).
 - clear H0. destruct p as [p hp]. simpl in IHsemax. simpl.
   have h0: forall st, u st -> forall tr, exec (Swhile a s) st (Tcons st tr) ->
-  (iter (append p (dup u))) tr.
+    (iter (append p (dup u))) tr.
   * cofix CIH0.
     have h: forall tr0 tr1, follows (singleton u) tr0 tr0 -> execseq (Swhile a s) tr0 tr1 ->
-    follows (iter (append p (dup u))) (lastdup tr0) tr1.
+      follows (iter (append p (dup u))) (lastdup tr0) tr1.
     + cofix CIH1=>{H st0 hexec hu}tr0 tr1 h0 h1. inv h1.
       - inversion h0=>{h0 H1 H0 H3}. move: H2 => [st1 [h1 h2]]. inv h2.
         rewrite [lastdup _]trace_destr /=. inv H.
-        * apply/follows_delay/follows_nil=>//. by apply iter_stop.
+        * by apply/follows_delay/follows_nil/iter_stop.
       - inversion H3; subst. inversion H5; subst. inversion H6; subst.
         apply/follows_delay/follows_nil.
         * rewrite -(exec_hd H1). by apply: (execseq_hd H8).

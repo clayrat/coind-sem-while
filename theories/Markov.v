@@ -28,15 +28,15 @@ Lemma cofinally_B_setoid: forall n tr0, cofinally_B n tr0 ->
 Proof.
 cofix CIH=> n tr0 h0 tr1 h1. inv h0.
 - inv h1. inv H3.
-  by apply: (cofinally_B_nil (refl_equal (st x)) H0).
+  by apply: cofinally_B_nil.
 - inv h1. inv H4.
-  by exact: cofinally_B_delay (CIH _ _ H _ H5) (refl_equal (st x)) H1.
+  apply/cofinally_B_delay=>//. by apply/CIH/H5.
 Qed.
 
 Definition Cofinally_B (n: nat) : assertT.
 exists (fun tr => cofinally_B n tr).
 move=> tr0 /= h0 tr1 h1.
-by apply: (cofinally_B_setoid h0 h1).
+by apply/cofinally_B_setoid/h1.
 Defined.
 
 (* Lemma 5.2 *)
@@ -46,10 +46,9 @@ Proof.
 move => tr0 /= h0. exists tr0. split=>//.
 suff: forall n tr, cofinally_B n tr ->
         follows (singleton B_holds_for_x) tr tr by apply; exact: h0.
-clear h0. cofix CIH=> n tr h0. inv h0.
-- apply/follows_delay/follows_nil => //. exists st.
-  by split=>//; apply: bisim_reflexive.
-- by apply: (follows_delay _ (follows_delay _ (CIH _ _ H))).
+cofix CIH=> n tr {}h0. inv h0.
+- by apply/follows_delay/follows_nil/mk_singleton_nil.
+- by apply/follows_delay/follows_delay/CIH/H.
 Qed.
 
 (* Lemma 5.1: cofinally_B 0 is stronger than nondivergent. *)
@@ -70,9 +69,6 @@ apply: B_noncontradictory => n. induction n=>h3.
   by apply: H1.
 Qed.
 
-Lemma plus_S: forall n, n + 1 = S n.
-Proof. by move => n; lia. Qed.
-
 (*
  x := 0; while !(B x) (x := x + 1)
 *)
@@ -83,24 +79,19 @@ Lemma Markov_search :
  semax ttS s ((ttT *** [|B_holds_for_x|]) andT negT Infinite).
 Proof.
 have hs0: semax ttS (x <- (fun _ => 0))
-((Updt ttS x (fun _ => 0)) *** [| x_is_zero |]).
-* apply: (semax_conseq_R _ (semax_assign _ _ _))=> tr /= h0.
+  ((Updt ttS x (fun _ => 0)) *** [| x_is_zero |]).
+* apply/semax_conseq_R/semax_assign=> tr /= h0.
   exists tr. split => //.
   inv h0. destruct H as [_ h0]. inv h0. inv H1.
-  apply follows_delay. apply follows_nil => //.
-  exists (update x 0 x0). split => //.
-  + by rewrite /update /x_is_zero Nat.eqb_refl.
-  by apply: bisim_reflexive.
+  apply/follows_delay/follows_nil/mk_singleton_nil=>//.
+  by rewrite /update /x_is_zero Nat.eqb_refl.
 have hs1: semax (x_is_zero)  (Swhile cond (x <- incr_x))
  ((ttT *** [|B_holds_for_x|]) andT negT Infinite).
 pose u1 := ttS andS eval_true cond.
 have h0 := semax_assign u1 x incr_x.
 have h1 : (Updt u1 x incr_x) =>> ((Updt u1 x incr_x)  *** [|ttS|]).
-* move => tr0 {}h0. exists tr0. split=>//.
-  clear h0. move: tr0. cofix CIH. case.
-  - move => st0. apply follows_nil => //.
-    by apply: mk_singleton_nil.
-  - move => st0 tr0; by apply: (follows_delay _ (CIH _)).
+* move => tr0 {}h0. exists tr0. split=>// {h0}.
+  by exact: follows_ttS.
 have h2 := semax_conseq_R h1 h0 => {h0 h1}.
 have h0 : x_is_zero ->> ttS by [].
 have h1 := semax_while h0 h2 => {h0 h2}.
@@ -110,24 +101,24 @@ have h0 :
 * move => tr0 [tr1 [[st0 [h0 h2]] {}h1]] /=.
   inv h2. inv H1. inv h1. inv H2.
   have h1: forall n st tr, hd tr x = n ->
-  hd tr = st ->
-  append (iter (append (updt u1 x incr_x) (dup ttS)))
-  (singleton (eval_false cond)) tr ->
-  cofinally_B n (Tcons st tr).
+    hd tr = st ->
+    append (iter (append (updt u1 x incr_x) (dup ttS)))
+    (singleton (eval_false cond)) tr ->
+    cofinally_B n (Tcons st tr).
   * cofix CIH => {H1} n st0 tr0 h {}h0 [tr1 [h1 h2]]. inv h1.
     - inv h2. move: H1 => [st0 [h0 h1]]. inv h1. simpl.
-      apply: cofinally_B_nil=>//. by apply: (cond_false h0).
+      by apply/cofinally_B_nil/cond_false.
     - move: H => [tr2 [[st0 [h0 h3]] h1]].
       inv h3. inv H2. inv h1. inv H3. inv H0. inv h2.
       move: H2 => [st1 [h1 h2]]. inv h2. inv H2. simpl in H1.
       simpl. inv H5. inv H3. clear h1. inv H4.
       have h1: hd tr'1 = (update x (incr_x st0) st0).
-      * rewrite -H0. symmetry. by apply: (follows_hd H5).
+      * rewrite -H0. by apply/esym/follows_hd/H5.
       have h2: hd tr'1 x = S (st0 x).
-      * by rewrite h1 /update Nat.eqb_refl /incr_x plus_S.
+      * by rewrite h1 /update Nat.eqb_refl /incr_x; lia.
       have h3: (append (iter (append (updt u1 x incr_x) (dup ttS)))
-      (singleton (eval_false cond))) tr'1.
-      * exists tr'0. by split.
+        (singleton (eval_false cond))) tr'1.
+        by exists tr'0.
       apply: (cofinally_B_delay (CIH _ _ _ h2 h1 h3)) => // {h1 h2 h3}.
       move: h0 => [_ h0]. apply: (cond_true h0).
     by apply: (h1 _ _ _ _ _ H1).
@@ -139,7 +130,8 @@ apply: (semax_conseq_R _ hs).
 move => tr0 /= [tr1 [[st0 [h0 h2]] h1]].
 inv h2. inv H1. clear h0. inv h1. inv H2. destruct H1 as [h0 h1]. split.
 + destruct h0 as [tr0 [_ h2]]. exists (Tcons st0 tr'). split => //.
-  apply follows_delay. have h0 := follows_singleton h2.
+  apply follows_delay.
+  have h0 := follows_singleton h2.
   by apply: (follows_setoid (@singleton_setoid _) h2 h0 (bisim_reflexive _)).
-move => h2. inv h2. by apply: h1.
+move => h2. apply: h1. by inv h2.
 Qed.

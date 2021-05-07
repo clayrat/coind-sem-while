@@ -85,10 +85,10 @@ Lemma sequence_correct0: forall s,
 (forall st0, exec s st0 (Exec s st0)) ->
 forall tr, execseq s tr (sequence (Exec s) tr).
 Proof.
-cofix COINDHYP=> s h1. case.
+cofix CIH=> s h1. case.
 - move => st1. apply: execseq_nil. rewrite sequence_nil. by apply: h1.
 - move => st0 tr0. rewrite sequence_cons.
-  by apply/execseq_cons/COINDHYP.
+  by apply/execseq_cons/CIH.
 Qed.
 
 Lemma Exec_nil: forall s st1 st2, Exec s st1 = Tnil st2 -> st1 = st2.
@@ -131,11 +131,11 @@ is_true (e st) ->
 exec (Swhile e s) st
  (Tcons st (loop (Exec s) (fun st0 => is_true (e st0)) st)).
 Proof.
-move => s st e h1 h2. cofix COINDHYP.
+move => s st e h1 h2. cofix CIH.
 apply: (exec_while_loop h2).
 - by apply/execseq_cons/execseq_nil/(Exec_sound_nil h1).
 rewrite [loop _ _ _]trace_destr /= h1 h2.
-by apply/execseq_cons/(execseq_nil COINDHYP).
+by apply/execseq_cons/(execseq_nil CIH).
 Qed.
 
 Lemma loop_correct0: forall  e s,
@@ -143,14 +143,14 @@ Lemma loop_correct0: forall  e s,
 forall st, exec (Swhile e s) st
  (Tcons st (loop (Exec s) (fun st0 => is_true (e st0)) st)).
 Proof.
-move => e s h1. cofix COINDHYP.
-have COINDHYP2: forall tr,
+move => e s h1. cofix CIH.
+have CIH2: forall tr,
                 execseq (Swhile e s) tr (loopseq (Exec s) (fun st0 => is_true (e st0)) tr).
-* cofix COINDHYP2. case=>st1.
+* cofix CIH2. case=>st1.
   - rewrite [loopseq _ _ _]trace_destr /=.
-    by apply/execseq_nil/COINDHYP.
+    by apply/execseq_nil/CIH.
   - move => tr1. rewrite [loopseq _ _ _]trace_destr /=.
-    by apply/execseq_cons/COINDHYP2.
+    by apply/execseq_cons/CIH2.
 * move => st. case/boolP: (is_true (e st))=>h2.
   - case h3: (Exec s st).
     - have h4 := (Exec_nil h3). rewrite -h4 in h3.
@@ -158,7 +158,7 @@ have COINDHYP2: forall tr,
     - rewrite [loop _ _ _]trace_destr /= h2 h3.
       apply: (exec_while_loop h2 (execseq_cons _  (execseq_nil (h1 _)))).
       rewrite h3.
-      by apply/execseq_cons/execseq_cons/COINDHYP2.
+      by apply/execseq_cons/execseq_cons/CIH2.
   - rewrite [loop _ _ _]trace_destr /= (negbTE h2). by apply: (exec_while_false _ h2).
 Qed.
 

@@ -1,13 +1,12 @@
-From CoindSemWhile Require Import SsrExport Trace Language Semax.
-From CoindSemWhile Require Import Assert AssertClassical.
+From CoindSemWhile Require Import SsrExport Trace Language.
+From CoindSemWhile Require Import Semax Assert AssertClassical.
 From Coq Require Import Lia.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Import Prenex Implicits.
 
-Variable x : id.
-Variable y : id.
+Variables x y : id.
 Axiom xy : x =? y = false.
 Variable cond : expr. (* y <> 0 *)
 Axiom cond_true: forall st, eval_true cond st -> (st y <> 0).
@@ -15,7 +14,7 @@ Variable tt : expr.
 Axiom tt_true: forall st, is_true (tt st).
 
 Lemma yx : y =? x = false.
-Proof. by rewrite Nat.eqb_sym; apply xy. Qed.
+Proof. rewrite Nat.eqb_sym; apply xy. Qed.
 
 Definition incr_x: expr := fun st => st x + 1.
 Definition decr_y: expr := fun st => st y - 1.
@@ -31,15 +30,15 @@ Inductive red_hd_x : trace -> trace -> Prop :=
   red_hd_x (Tcons st tr) tr'.
 
 Lemma red_hd_x_deterministic: forall tr0 tr1, red_hd_x tr0 tr1 ->
-forall tr2, red_hd_x tr0 tr2 -> bisim tr1 tr2.
+  forall tr2, red_hd_x tr0 tr2 -> bisim tr1 tr2.
 Proof.
 induction 1=> tr0 h0; inv h0=>//.
-- by apply: (bisim_transitive (bisim_symmetric H0) H5).
-- by apply: (IHred_hd_x _ H5).
+- by apply/bisim_transitive/H5/bisim_symmetric.
+- by apply/IHred_hd_x.
 Qed.
 
 Lemma red_hd_x_setoid: forall tr0 tr1, red_hd_x tr0 tr1 ->
-forall tr2, bisim tr0 tr2 -> forall tr3, bisim tr1 tr3 -> red_hd_x tr2 tr3.
+  forall tr2, bisim tr0 tr2 -> forall tr3, bisim tr1 tr3 -> red_hd_x tr2 tr3.
 Proof.
 induction 1.
 - move => tr0 h0 tr1 h2. inv h0.
@@ -57,7 +56,7 @@ CoInductive up : nat -> trace -> Prop :=
   up n (Tcons st tr0).
 
 Lemma up_setoid: forall n tr0, up n tr0 ->
-forall tr1, bisim tr0 tr1 -> up n tr1.
+  forall tr1, bisim tr0 tr1 -> up n tr1.
 Proof.
 move => n tr0 h0 tr1 h1. inv h0. inv h1.
 have h1 := red_hd_x_setoid H0 (bisim_cons st H4) (bisim_reflexive tr3).
@@ -76,7 +75,7 @@ Inductive skips: trace -> Prop :=
   skips tr -> hd tr x = st x -> skips (Tcons st tr).
 
 Lemma skips_setoid: forall tr0, skips tr0 -> forall tr1, bisim tr0 tr1 ->
-skips tr1.
+  skips tr1.
 Proof.
 induction 1.
 - move => st0 h0. inv h0. by apply skips_nil.
@@ -90,12 +89,6 @@ exists (fun tr => skips tr).
 move => tr0 h0 tr1 h1 /=.
 by apply: (skips_setoid h0 h1).
 Defined.
-
-Lemma Sn_1 : forall n, S n - 1 = n.
-Proof. by move => n; lia. Qed.
-
-Lemma Sn: forall n, n + 1 = S n.
-Proof. by move => n; lia. Qed.
 
 Definition x_is_zero : assertS := fun st => st x = 0.
 
@@ -144,7 +137,7 @@ have h0 : ((<< ttS >>) *** Iter (Updt (ttS andS a_t) y decr_y *** (<< ttS >>)) *
       - apply: IHn.
         - have h2 := follows_hd H4.
           rewrite -{}h2 {}H0 /decr_y {}h0 /update Nat.eqb_refl.
-          by apply Sn_1.
+          by lia.
         exists tr'0. split=>//.
         move: H1 => [st1 [_ h2]]. inv h2. simpl in H0. inv H2. inv H4.
         apply follows_delay. inv H2. inv H5. apply follows_nil => //.
@@ -210,7 +203,7 @@ have h0: (<<x_is_zero>> *** Iter ((Skips *** Updt ttS x incr_x)
               - rewrite /= /update Nat.eqb_refl /incr_x. by lia.
               rewrite H0.
               by apply/bisim_cons/bisim_symmetric.
-            rewrite /= H0 /update Nat.eqb_refl. split; first by apply Sn.
+            rewrite /= H0 /update Nat.eqb_refl. split; first by rewrite /incr_x; lia.
             split; first by apply H1.
             apply: (follows_setoid _ H5 _ (bisim_symmetric h1)).
             - move => tr0 h2 tr1 h3. move: h2 => [st1 [h2 h4]]. inv h4.

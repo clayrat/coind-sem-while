@@ -9,7 +9,7 @@ Definition udt (u: assertS) (x: id) (a: expr): assertS :=
 
 Inductive hsemax : assertS -> stmt -> assertS -> Prop :=
 
-| hsemax_skip: forall u,   hsemax u Sskip u
+| hsemax_skip: forall u, hsemax u Sskip u
 
 | hsemax_assign: forall u x a,
   hsemax u (Sassign x a) (udt u x a)
@@ -45,21 +45,15 @@ move => s u1 u2 v h0 h1. by apply/hsemax_conseq/h1.
 Qed.
 
 Lemma hsemax_conseq_R: forall s u v1 v2,
-v2 ->> v1 -> hsemax u s v2 -> hsemax u s v1.
+  v2 ->> v1 -> hsemax u s v2 -> hsemax u s v1.
 Proof.
 move => s u v1 v2 h0 h1. by apply/hsemax_conseq/h1.
-Qed.
-
-Lemma Last_destruct : forall (p: assertT) st tr,
- satisfy p tr -> fin tr st -> Last p st.
-Proof.
-move => [f h] st tr /= h0 h1. by exists tr.
 Qed.
 
 (* Proposition 4.3: projecting the trace-based Hoare logic into
    the partial-correctness Hoare logic. *)
 Lemma semax_correct_hsemax: forall u s p,
-semax u s p -> forall v, hsemax (v andS u) s (Last ([|v|] *** p)).
+  semax u s p -> forall v, hsemax (v andS u) s (Last ([|v|] *** p)).
 Proof.
 induction 1.
 - move => v.
@@ -87,8 +81,8 @@ induction 1.
 - move => v.
   have hpost : (Last ([|v andS u|] *** p)) ->> (Last ([|v|] *** <<u>> *** p)).
   * destruct p as [p hp]. move => st0 [tr0 [[tr1 [[st1 [h4 h3]] h2]] h1]] /=.
-     inv h3. inv h2. move: h4 => [h2 h3]. exists (Tcons (hd tr0) tr0).
-     split; last by apply: fin_delay.
+     inv h3. inv h2. move: h4 => [h2 h3].
+     exists (Tcons (hd tr0) tr0). split; last by apply: fin_delay.
      exists (Tnil (hd tr0)). split; first by exact: mk_singleton_nil.
      apply follows_nil =>//.
      exists (Tcons (hd tr0) (Tnil (hd tr0))). split; first by exact: mk_dup.
@@ -131,18 +125,14 @@ induction 1.
     * apply: (Last_monotone (@Append_assoc_R _ _ _)).
       by apply: (Last_monotone (Append_monotone_L (@Append_assoc_R _ _ _))).
     by apply/Last_dup.
-  have h1 := hsemax_conseq_R h0 h2 => {h0 h2}.
-  have h0 := hsemax_while h1 => {h1}.
-  apply: (hsemax_conseq _ _ h0).
+  apply/hsemax_conseq/hsemax_while/hsemax_conseq_R/h2=>// {h2}.
   * move => st0 {}h0. rewrite /inv.
     apply: (Last_monotone
              (@Append_monotone_R _ _ _ (@Append_monotone_R  _ _ _ (@Stop_Iter _)))).
     move: h0 => [h0 h1].
     exists (Tcons st0 (Tnil st0)). split; last by apply/fin_delay/fin_nil.
     exists (Tnil st0). split; first by apply: mk_singleton_nil.
-    apply: follows_nil=>//.
-    exists (Tcons st0 (Tnil st0)). split; first by exact: mk_dup.
-    by apply/follows_delay/follows_nil/mk_singleton_nil.
+    by apply/follows_nil/Sglt_Dup_3/mk_dup.
   * rewrite /inv => st0 [h1 h2].
     apply: (Last_monotone (@Append_assoc_L _ _ _)).
     apply: (Last_monotone (@Append_assoc_L _ _ _)).

@@ -84,10 +84,10 @@ Qed.
 (* the small-step functional semantics correct wrt the small-step relational semantics. *)
 Lemma Redm_correct_redm: forall st s, redm s st (Redm s st).
 Proof.
-cofix COINDHYP=>st s. rewrite [Redm s st]trace_destr /=.
+cofix CIH=>st s. rewrite [Redm s st]trace_destr /=.
 case h1: (red s st) => [[s' st'] /=|].
 - have h2 := red_then_step h1.
-  by apply/(redm_step h2)/COINDHYP.
+  by apply/(redm_step h2)/CIH.
 - by apply/redm_stop/(red_then_stop h1).
 Qed.
 
@@ -104,18 +104,18 @@ forall tr1 tr2, redm_str s tr1 tr2 ->
 execseq s tr1 tr2.
 Proof.
 move => s h.
-cofix COINDHYP => tr1 tr2 h1. inv h1.
+cofix CIH => tr1 tr2 h1. inv h1.
 - by apply/execseq_nil/h.
-- by apply/execseq_cons/COINDHYP.
+- by apply/execseq_cons/CIH.
 Qed.
 
 Lemma Redm_sequence: forall s1 s2 st,
 bisim (Redm (Sseq s1 s2) st) (sequence (Redm s2) (Redm s1 st)).
 Proof.
-cofix COINDHYP=> s1 s2 st.
+cofix CIH=> s1 s2 st.
 rewrite [Redm (Sseq s1 s2) st]trace_destr /= [Redm s1 st]trace_destr /=.
 case h1 : (red s1 st) => [[s1' st']|]; rewrite [sequence _ _]trace_destr /=.
-- by apply/bisim_cons/COINDHYP.
+- by apply/bisim_cons/CIH.
 - case: (red s2 st)=>*.
   - by apply: bisim_reflexive.
   - by apply: bisim_nil.
@@ -128,12 +128,12 @@ forall tr1 tr2, bisim tr1 tr2 ->
 bisim (sequence k1 tr1) (sequence k2 tr2).
 Proof.
 move => k1 k2 h1.
-cofix COINDHYP=> tr1 tr2 h2. inv h2.
+cofix CIH=> tr1 tr2 h2. inv h2.
 - rewrite [sequence k1 _]trace_destr [sequence k2 _]trace_destr /=.
   have h3 := h1 st.
   by inv h3; [apply: bisim_nil|apply: bisim_cons].
 - rewrite [sequence k1 _]trace_destr /= [sequence k2 _]trace_destr /=.
-  by apply/bisim_cons/COINDHYP.
+  by apply/bisim_cons/CIH.
 Qed.
 
 Lemma Redm_loop_skip: forall a s st,
@@ -143,9 +143,9 @@ Lemma Redm_loop_skip: forall a s st,
    (loop (Redm s) (fun st0 => is_true (a st0)) st).
 Proof.
 move => a s st h1 h2.
-cofix COINDHYP.
+cofix CIH.
 rewrite [Redm _ _]trace_destr /= [loop _ _ _]trace_destr /= h1 h2 /=.
-by apply/bisim_cons/COINDHYP.
+by apply/bisim_cons/CIH.
 Qed.
 
 
@@ -153,19 +153,19 @@ Lemma Redm_loop: forall a s,
 forall st, bisim (Redm (Swhile a s) st)
  (Tcons st (loop (Redm s) (fun st0 => is_true (a st0)) st)).
 Proof.
-cofix COINDHYP.
-have COINDHYP2: forall a s s1 st1,
+cofix CIH.
+have CIH2: forall a s s1 st1,
                 bisim (Redm (Sseq s1 (Swhile a s)) st1)
                 (loopseq (Redm s) (fun st0 => is_true (a st0)) (Redm s1 st1)).
-* cofix COINDHYP2=> a s s1 st1. case h1: (red s1 st1) => [[s1' st1']|].
+* cofix CIH2=> a s s1 st1. case h1: (red s1 st1) => [[s1' st1']|].
   - rewrite [loopseq _ _ _]trace_destr /= [Redm _ _]trace_destr /= h1 /=.
-    by apply/bisim_cons/COINDHYP2.
+    by apply/bisim_cons/CIH2.
   - case h2 : (is_true (a st1)).
     - rewrite [Redm _ _]trace_destr /= h1 h2 /= [loopseq _ _ _]trace_destr /= h1 /=
               [loop _ _ _]trace_destr /= h2.
       case h3 : (red s st1) => [[s' st1']|].
       - rewrite [Redm _ _]trace_destr /= h3 /=.
-        by apply/bisim_cons/bisim_cons/COINDHYP2.
+        by apply/bisim_cons/bisim_cons/CIH2.
       - rewrite [Redm _ _]trace_destr /= h2 h3 /=.
         by apply/bisim_cons/bisim_cons/(Redm_loop_skip h2 h3).
     - rewrite [Redm _ _]trace_destr /= h1 h2 /= [loopseq _ _ _]trace_destr /= h1 /=
@@ -175,7 +175,7 @@ move => a s st. case h1 : (is_true (a st)).
 - rewrite [Redm _ _]trace_destr /= h1 /=.
   case h2 :(red s st) => [[s' st']|].
   - rewrite [loop _ _ _]trace_destr /= h1 h2 /= [Redm _ _]trace_destr /= h2 /=.
-    by apply/bisim_cons/bisim_cons/COINDHYP2.
+    by apply/bisim_cons/bisim_cons/CIH2.
   - by apply/bisim_cons/(Redm_loop_skip h1 h2).
 - rewrite [Redm _ _]trace_destr /= h1 /= [Redm _ _]trace_destr /=
           [loop _ _ _]trace_destr /= h1 /=.
@@ -186,20 +186,20 @@ Lemma loop_deterministic0: forall k1 k2 p,
 (forall st, bisim (k1 st) (k2 st)) ->
 forall st, bisim (loop k1 p st) (loop k2 p st).
 Proof.
-move => k1 k2 p h1. cofix COINDHYP.
-have COINDHYP2 : forall tr1 tr2,
+move => k1 k2 p h1. cofix CIH.
+have CIH2 : forall tr1 tr2,
                  bisim tr1 tr2 -> bisim (loopseq k1 p tr1) (loopseq k2 p tr2).
-- cofix COINDHYP2=> tr1 tr2 h2. inv h2.
+- cofix CIH2=> tr1 tr2 h2. inv h2.
   - rewrite [loopseq k1 _ _]trace_destr /= [loopseq k2 _ _]trace_destr /=.
-    by apply/bisim_cons/COINDHYP.
+    by apply/bisim_cons/CIH.
   - rewrite [loopseq k1 _ _]trace_destr /= [loopseq k2 _ _]trace_destr /=.
-    by apply/bisim_cons/COINDHYP2.
+    by apply/bisim_cons/CIH2.
 * move => st. case h2: (p st).
   - have h3 := h1 st. inv h3.
     - rewrite [loop k1 _ _]trace_destr /= [loop k2 _ _]trace_destr /= h2 -H -H0.
-      by apply/bisim_cons/COINDHYP.
+      by apply/bisim_cons/CIH.
     - rewrite [loop k1 _ _]trace_destr /= [loop k2 _ _]trace_destr /= h2 -H -H0.
-      by apply/bisim_cons/COINDHYP2.
+      by apply/bisim_cons/CIH2.
   - rewrite [loop k1 _ _]trace_destr /= [loop k2 _ _]trace_destr /= h2.
     by apply: bisim_nil.
 Qed.
